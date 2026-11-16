@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Qui glande ? — Le Super</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--teal:#12a594;--teal2:#0b7a6d;--orange:#ff8a3d;--orange2:#c9621f;--red:#ff4d5a;--red2:#b7303a;--gold:#ffc83d;--ink:#1d2433;--panel:rgba(34,26,52,.9);--good:#3ee0a1;--bad:#ff6b6b}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:#0e1220;font-family:'Fredoka',system-ui,sans-serif;color:#fff;-webkit-user-select:none;user-select:none}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;outline:none}
+.hidden{display:none!important}
+button{font-family:inherit;cursor:pointer;border:3px solid #2a2135;border-radius:14px;padding:10px 16px;font-size:16px;font-weight:600;color:#fff;background:var(--teal);box-shadow:0 4px 0 var(--teal2);transition:transform .06s,filter .15s}
+button:hover{filter:brightness(1.08)}
+button:active{transform:translateY(2px);box-shadow:0 2px 0 var(--teal2)}
+button.orange{background:var(--orange);box-shadow:0 4px 0 var(--orange2)}
+button.red{background:var(--red);box-shadow:0 4px 0 var(--red2)}
+button.ghost{background:rgba(255,255,255,.12);box-shadow:none}
+button.sm{padding:5px 10px;font-size:14px;border-radius:10px}
+button.big{font-size:20px;padding:14px 22px}
+button:disabled{opacity:.4;cursor:not-allowed;filter:none}
+input,select{font-family:inherit;font-size:16px;border-radius:12px;border:2px solid transparent;background:#fff;color:var(--ink);padding:8px 12px;outline:none}
+input:focus,select:focus{border-color:var(--orange)}
+.panel{background:var(--panel);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-radius:18px;padding:14px;box-shadow:0 5px 0 rgba(20,14,30,.9),0 12px 30px rgba(0,0,0,.3);border:3px solid #2a2135}
+.small{font-size:13px;opacity:.85}
+.screen{position:fixed;inset:0;z-index:20}
+/* ---------- title ---------- */
+#title{display:flex;align-items:center;justify-content:space-between;padding:4vh 4vw;pointer-events:none}
+#title>*{pointer-events:auto}
+.logo{align-self:flex-start;text-shadow:0 6px 0 rgba(0,0,0,.25)}
+.logo .l1{font-size:clamp(42px,7vw,92px);font-weight:700;line-height:.95;color:#fff;-webkit-text-stroke:3px var(--ink);paint-order:stroke fill}
+.logo .l1 span{color:var(--orange)}
+.logo .l2{font-size:clamp(18px,2.2vw,28px);font-weight:600;margin-top:8px;background:var(--teal);display:inline-block;padding:4px 14px;border-radius:12px;box-shadow:0 4px 0 var(--teal2)}
+.title-panel{width:min(420px,92vw);display:flex;flex-direction:column;gap:10px}
+.title-panel label{font-weight:600;font-size:14px;opacity:.8}
+.custom{display:flex;flex-direction:column;gap:8px;background:rgba(255,255,255,.06);border-radius:14px;padding:10px}
+.custom .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.custom .row>span{width:86px;font-size:14px;opacity:.85}
+.custom .row b{min-width:120px;text-align:center;font-weight:600}
+.swatches{display:flex;gap:5px;flex-wrap:wrap;flex:1}
+.sw{width:22px;height:22px;border-radius:50%;border:3px solid rgba(255,255,255,.25);cursor:pointer}
+.sw.on{border-color:#fff;transform:scale(1.15)}
+.actions{display:flex;flex-direction:column;gap:9px;margin-top:4px}
+.join{display:flex;gap:8px}
+.join input{flex:1;min-width:0;text-transform:uppercase;letter-spacing:6px;font-weight:700;text-align:center}
+#netStatus{min-height:18px}
+.help-btn{position:fixed;left:4vw;bottom:4vh;z-index:21}
+/* ---------- lobby ---------- */
+#lobby{display:flex;justify-content:flex-end;align-items:center;padding:3vh 3vw;pointer-events:none}
+#lobby>*{pointer-events:auto}
+.lobby-panel{width:min(440px,94vw);max-height:94vh;overflow:auto;display:flex;flex-direction:column;gap:10px}
+.lobby-code{font-size:20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.lobby-code b{font-size:38px;letter-spacing:6px;color:var(--gold)}
+#lobbyList{display:flex;flex-direction:column;gap:6px}
+.pl{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.07);border-radius:12px;padding:6px 10px}
+.dot{width:20px;height:20px;border-radius:50%;flex:none;border:2px solid rgba(255,255,255,.6)}
+.tag{font-size:12px;padding:2px 8px;border-radius:8px;background:rgba(255,255,255,.15);margin-left:auto}
+.tag.host{background:var(--gold);color:var(--ink)}
+#hostCtl{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#hostCtl b{min-width:22px;text-align:center}
+/* ---------- HUD ---------- */
+#hud{position:fixed;inset:0;pointer-events:none;z-index:10}
+#prodWrap{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:min(520px,60vw);text-align:center}
+.prod-label{font-weight:700;font-size:13px;letter-spacing:2px;text-shadow:0 2px 4px rgba(0,0,0,.6)}
+#prodBar{position:relative;height:22px;border-radius:12px;background:rgba(0,0,0,.45);border:3px solid rgba(255,255,255,.85);overflow:hidden;margin-top:3px}
+#prodFill{position:absolute;left:0;top:0;bottom:0;width:50%;background:linear-gradient(90deg,#ff4d5a,#ffb400 45%,#3ee0a1);transition:width .3s}
+#prodMid{position:absolute;left:50%;top:0;bottom:0;width:2px;background:rgba(255,255,255,.6)}
+#prodPct{font-weight:700;font-size:20px;text-shadow:0 2px 4px rgba(0,0,0,.6)}
+#left{position:absolute;top:12px;left:12px;width:290px;display:flex;flex-direction:column;gap:8px}
+#roleCard{padding:10px 12px}
+#roleCard .rn{font-size:22px;font-weight:700}
+#roleCard .rd{font-size:13px;opacity:.85;margin-top:2px}
+#taskBox{padding:10px 12px;font-size:14px}
+#taskBox .h{font-weight:700;margin-bottom:4px}
+#taskBox .h.small{margin-top:8px}
+.task{display:flex;gap:6px;align-items:flex-start;padding:3px 0}
+.task .ic{width:20px;text-align:center}
+.task .tx{flex:1}
+.task .d{opacity:.7;font-size:12px;white-space:nowrap}
+.task.s .tx{color:#ffb3b3}
+.task.p .tx{color:#a8d8ff}
+.task.urg .tx{color:#ffd27a;font-weight:600}
+.task .sub{display:block;font-size:12px;opacity:.75}
+#right{position:absolute;top:12px;right:12px;width:250px;display:flex;flex-direction:column;gap:8px;align-items:stretch}
+#mini{width:250px;height:198px;border-radius:16px;background:rgba(18,24,38,.8);border:2px solid rgba(255,255,255,.12)}
+#timers{padding:8px 12px;font-size:14px;display:flex;flex-direction:column;gap:3px}
+#timers .warn{color:#ff8b8b;font-weight:700}
+#mgrCtl{padding:10px 12px;font-size:13px;display:flex;flex-direction:column;gap:6px;pointer-events:auto}
+#prompt{position:absolute;left:50%;bottom:120px;transform:translateX(-50%);background:var(--panel);border-radius:16px;padding:10px 18px;font-size:17px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:260px}
+#prompt .pl2{display:flex;align-items:center;gap:10px}
+.key{display:inline-block;background:#fff;color:var(--ink);border-radius:7px;padding:1px 8px;font-weight:700;box-shadow:0 3px 0 #9aa}
+#promptBar{width:100%;height:8px;border-radius:6px;background:rgba(255,255,255,.15);overflow:hidden}
+#promptFill{height:100%;width:0;background:var(--gold)}
+#crosshair{position:absolute;left:50%;top:50%;width:8px;height:8px;margin:-4px;border-radius:50%;background:rgba(255,255,255,.9);box-shadow:0 0 0 2px rgba(42,33,53,.8);transition:all .1s}
+#crosshair.on{width:14px;height:14px;margin:-7px;background:#3ee0a1}
+#keys{position:absolute;right:12px;bottom:10px;text-align:right;text-shadow:0 1px 3px #000}
+#spect{position:absolute;left:50%;top:70px;transform:translateX(-50%);background:rgba(0,0,0,.5);padding:6px 14px;border-radius:12px;font-weight:600}
+/* chat */
+#chat{position:fixed;left:12px;bottom:12px;width:min(380px,60vw);z-index:30;pointer-events:none;display:flex;flex-direction:column;gap:6px}
+#chatLog{display:flex;flex-direction:column;gap:3px;font-size:14px;max-height:230px;overflow:hidden;justify-content:flex-end}
+.cl{background:rgba(10,14,24,.62);padding:4px 9px;border-radius:10px;width:fit-content;max-width:100%;word-wrap:break-word;transition:opacity 1s}
+.cl b{margin-right:4px}
+.cl.sys{background:rgba(18,165,148,.55)}
+.cl.ghostmsg{opacity:.7;font-style:italic}
+#chat.open .cl{opacity:1!important}
+#chatIn{pointer-events:auto;width:100%}
+/* toasts */
+#toasts{position:fixed;top:78px;left:50%;transform:translateX(-50%);z-index:40;display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none}
+.toast{background:var(--panel);border-radius:14px;padding:9px 18px;font-weight:600;font-size:17px;box-shadow:0 6px 20px rgba(0,0,0,.35);animation:tin .25s ease-out;text-align:center;max-width:86vw}
+.toast.fire{background:#b7303a}
+.toast.ann{background:#c9621f}
+.toast.good{background:#0b7a6d}
+@keyframes tin{from{transform:translateY(-12px) scale(.95);opacity:0}to{transform:none;opacity:1}}
+#bigMsg{position:fixed;inset:0;z-index:45;display:flex;align-items:center;justify-content:center;pointer-events:none}
+#bigMsg .bm{background:var(--panel);border-radius:24px;padding:26px 36px;text-align:center;max-width:min(560px,90vw);animation:tin .3s ease-out}
+#bigMsg .bm .t1{font-size:16px;opacity:.85}
+#bigMsg .bm .t2{font-size:48px;font-weight:700;margin:4px 0}
+#bigMsg .bm .t3{font-size:16px;opacity:.9}
+/* meeting */
+#meeting{display:flex;align-items:center;justify-content:center;background:rgba(8,10,18,.45)}
+.meet-panel{width:min(760px,94vw);max-height:86vh;overflow:auto}
+.meet-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.meet-head h2{margin:0;font-size:26px}
+.meet-t{font-size:26px;font-weight:700;color:var(--gold)}
+#meetGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
+.mc{background:rgba(255,255,255,.08);border-radius:14px;padding:8px;display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center;border:2px solid transparent}
+.mc.me{border-color:rgba(255,255,255,.4)}
+.mc.voted{border-color:var(--gold)}
+.mc .av{width:42px;height:42px;border-radius:50%;border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-size:20px}
+.mc .nm{font-weight:600}
+.mc .vs{font-size:12px;min-height:16px;color:var(--gold)}
+.mc button{width:100%}
+#meetInfo{margin:10px 0 0;font-size:14px;opacity:.9}
+#meetSkip{margin-top:8px}
+/* end */
+#endScr{display:flex;align-items:center;justify-content:center;background:rgba(8,10,18,.55)}
+.end-panel{width:min(640px,94vw);max-height:90vh;overflow:auto;text-align:center}
+.end-panel h1{margin:4px 0;font-size:40px}
+.end-panel table{width:100%;border-collapse:collapse;margin:12px 0;font-size:15px}
+.end-panel td,.end-panel th{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.1);text-align:left}
+.end-panel .btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+/* cams */
+#camOverlay{position:fixed;inset:0;z-index:15;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.12) 0 2px,transparent 2px 4px);box-shadow:inset 0 0 120px rgba(0,0,0,.7)}
+#camOverlay .cam-label{position:absolute;top:18px;left:22px;font-family:monospace;font-size:22px;color:#b6ffb0;text-shadow:0 0 6px #3f3}
+#camOverlay .cam-rec{position:absolute;top:18px;right:22px;font-family:monospace;font-size:20px;color:#ff6b6b}
+#camOverlay .cam-hint{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);font-family:monospace;color:#cfe;background:rgba(0,0,0,.4);padding:4px 10px;border-radius:8px}
+/* confirm & help */
+#confirm,#help{display:flex;align-items:center;justify-content:center;background:rgba(8,10,18,.55);z-index:50}
+#confirm .panel{text-align:center;display:flex;flex-direction:column;gap:12px;min-width:300px}
+#confirm .btns{display:flex;gap:10px;justify-content:center}
+.help-panel{width:min(720px,94vw);max-height:88vh;overflow:auto;font-size:15px;line-height:1.45}
+.help-panel h2{margin:0 0 6px}
+.help-panel h3{margin:14px 0 4px;color:var(--gold)}
+.help-panel ul{margin:4px 0;padding-left:20px}
+#loading{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:#0e1220;font-size:24px;font-weight:600}
+#loading.err{font-size:16px;padding:20px;text-align:center}
+
+/* mini-jeux */
+#mg{display:flex;align-items:center;justify-content:center;background:rgba(20,14,30,.35);z-index:35}
+.mg-panel{width:min(560px,94vw);display:flex;flex-direction:column;gap:10px;border:3px solid #2a2135;box-shadow:0 8px 0 #2a2135,0 18px 40px rgba(0,0,0,.4)}
+.mg-head{display:flex;justify-content:space-between;align-items:center;font-size:20px}
+.mg-belt{display:flex;gap:8px;justify-content:center;background:#2a2135;border-radius:14px;padding:12px;flex-wrap:wrap}
+.mg-item{font-size:34px;width:64px;height:64px;padding:0;border-radius:14px;background:#fff6e6;box-shadow:0 4px 0 #c9b28f;color:#000;position:relative}
+.mg-item.big{width:84px;height:84px;font-size:44px}
+.mg-item.ok{background:#3ee0a1;box-shadow:0 4px 0 #1f9e70;transform:scale(.9)}
+.mg-item.gone{opacity:.25}
+.mg-item .bug{position:absolute;right:2px;bottom:0;font-size:24px}
+.mg-grid{display:grid;grid-template-columns:repeat(3,84px);gap:10px;justify-content:center}
+.mg-row{display:flex;gap:10px;align-items:center;justify-content:space-between}
+.mg-screen{font-family:monospace;font-size:24px;background:#10251f;color:#7df3c8;border-radius:10px;padding:8px 14px;flex:1;text-align:right}
+.mg-screen.big{text-align:center;font-size:34px;letter-spacing:6px}
+.mg-bar{position:relative;height:34px;border-radius:12px;background:#2a2135;overflow:hidden;border:3px solid #2a2135}
+.mg-zone{position:absolute;top:0;bottom:0;background:#3ee0a1}
+.mg-needle{position:absolute;top:-4px;bottom:-4px;width:6px;margin-left:-3px;background:#ffd23f;box-shadow:0 0 0 2px #2a2135}
+.mg-fill{height:100%;width:0;background:linear-gradient(90deg,#4fb6ff,#3ee0a1)}
+.mg-hits{font-size:28px;color:#ffd23f;letter-spacing:4px}
+.mg-code{font-size:22px;text-align:center}
+.mg-code b{font-family:monospace;font-size:30px;color:#ffd23f}
+.mg-pad{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.mg-bubble{background:#fff;color:#2a2135;border-radius:16px;padding:12px 16px;font-size:18px}
+.mg-opts{display:flex;gap:8px;flex-wrap:wrap}.mg-opts button{flex:1;min-width:140px}
+.mg-opts.col{flex-direction:column}.mg-opts.col button{text-align:left}
+.mg-mash{font-size:80px;text-align:center;cursor:pointer;transition:transform .05s;user-select:none}
+.shake{animation:shk .3s}
+@keyframes shk{0%,100%{transform:none}25%{transform:translateX(-10px)}75%{transform:translateX(10px)}}
+</style>
+</head>
+<body>
+<canvas id="c" tabindex="0"></canvas>
+
+<div id="title" class="screen hidden">
+  <div class="logo"><div class="l1">QUI<br>GLANDE<span>&nbsp;?</span></div><div class="l2">🛒 au Super — supermarché de quartier</div></div>
+  <div class="panel title-panel" id="titlePanel">
+    <label for="inName">Ton pseudo</label>
+    <input id="inName" maxlength="14" placeholder="Pseudo" autocomplete="off">
+    <div class="custom" id="custom">
+      <div class="row"><span>Tenue</span><div id="swShirt" class="swatches"></div></div>
+      <div class="row"><span>Teint</span><div id="swSkin" class="swatches"></div></div>
+      <div class="row"><span>Chapeau</span><button class="ghost sm" data-cyc="2" data-d="-1">◀</button><b id="lbHat"></b><button class="ghost sm" data-cyc="2" data-d="1">▶</button></div>
+      <div class="row"><span>Accessoire</span><button class="ghost sm" data-cyc="3" data-d="-1">◀</button><b id="lbAcc"></b><button class="ghost sm" data-cyc="3" data-d="1">▶</button></div>
+    </div>
+    <div class="actions" id="titleActions">
+      <button id="btCreate" class="big">🎮 Créer un salon</button>
+      <div class="join"><input id="inCode" maxlength="4" placeholder="CODE" autocomplete="off"><button id="btJoin" class="orange">Rejoindre</button></div>
+      <button id="btSolo" class="ghost">🤖 Entraînement solo avec des bots</button>
+    </div>
+    <div id="netStatus" class="small"></div>
+  </div>
+</div>
+<button id="btHelp" class="help-btn hidden">❓ Règles & touches</button>
+
+<div id="lobby" class="screen hidden">
+  <div class="panel lobby-panel">
+    <div class="lobby-code"><span id="lbRoomLabel">Salon</span> <b id="lbCode">----</b> <button id="btCopy" class="ghost sm">Copier le code</button></div>
+    <div id="lobbyHint" class="small"></div>
+    <div id="lobbyList"></div>
+    <div id="hostCtl">
+      <span>Bots :</span><button id="btBotMinus" class="ghost sm">−</button><b id="lbBots">0</b><button id="btBotPlus" class="ghost sm">+</button>
+      <span id="soloPref">· Ton rôle : <select id="selRole"><option value="">Aléatoire</option><option value="mgr">Directeur</option><option value="emp">Employé</option><option value="gla">Glandeur</option></select></span>
+    </div>
+    <div id="customSlot"></div>
+    <button id="btStart" class="orange big">▶ Lancer la partie</button>
+    <div id="waitHost" class="small">En attente du lancement par l'hôte…</div>
+    <button id="btLeave" class="ghost">⬅ Quitter le salon</button>
+  </div>
+</div>
+
+<div id="hud" class="hidden">
+  <div id="prodWrap"><div class="prod-label">PRODUCTIVITÉ DU MAGASIN</div><div id="prodBar"><div id="prodFill"></div><div id="prodMid"></div></div><div id="prodPct">50 %</div></div>
+  <div id="left">
+    <div id="roleCard" class="panel"></div>
+    <div id="taskBox" class="panel"><div class="h" id="tbH">🏪 Le magasin a besoin de…</div><div id="taskList"></div><div id="reqBox"><div class="h small" id="rbH"></div><div id="reqList"></div></div><div class="h small">⚠️ Incidents</div><div id="incList"></div></div>
+  </div>
+  <div id="right">
+    <canvas id="mini" width="500" height="396"></canvas>
+    <div id="timers" class="panel"></div>
+    <div id="mgrCtl" class="panel hidden">
+      <b>👔 Commandes du directeur</b>
+      <button id="btMeet" class="orange sm">🔔 Réunion d'équipe (R)</button>
+      <div class="small">🔥 Approche-toi d'un employé et appuie sur <span class="key">F</span> pour le virer.<br>📹 Caméras : va à ton bureau et appuie sur <span class="key">E</span>.</div>
+    </div>
+  </div>
+  <div id="prompt" class="hidden"><div class="pl2" id="promptText"></div><div id="promptBar"><div id="promptFill"></div></div><div class="pl2 small" id="promptText2"></div></div>
+  <div id="crosshair" class="hidden"></div>
+  <div id="spect" class="hidden"></div>
+  <div id="keys" class="small">Clic dans le jeu = souris · ZQSD/WASD : bouger · Maj : courir · Clic gauche ou E : agir / prendre / poser · Clic droit ou X : lancer · G : poser par terre · I : indices · V : vue 1re/3e pers. · Entrée : chat · H : aide</div>
+</div>
+
+<div id="chat"><div id="chatLog"></div><input id="chatIn" class="hidden" maxlength="80" placeholder="Message… (Entrée pour envoyer, Échap pour fermer)" autocomplete="off"></div>
+<div id="toasts"></div>
+<div id="bigMsg" class="hidden"></div>
+
+<div id="meeting" class="screen hidden">
+  <div class="panel meet-panel">
+    <div class="meet-head"><h2>🔔 Réunion d'équipe</h2><div class="meet-t" id="meetT">0:45</div></div>
+    <div id="meetGrid"></div>
+    <div id="meetInfo"></div>
+    <button id="meetSkip" class="ghost">🤷 Je ne vote pour personne</button>
+  </div>
+</div>
+
+<div id="endScr" class="screen hidden">
+  <div class="panel end-panel">
+    <div id="endEmoji" style="font-size:56px"></div>
+    <h1 id="endTitle"></h1>
+    <div id="endReason"></div>
+    <table><thead><tr><th>Joueur</th><th>Rôle</th><th>Statut</th><th>Tâches</th><th>Sabotages</th></tr></thead><tbody id="endBody"></tbody></table>
+    <div class="btns"><button id="btAgain" class="orange big">🔁 Nouvelle partie</button><button id="btQuitEnd" class="ghost">Quitter</button></div>
+    <div id="endWait" class="small" style="margin-top:8px"></div>
+  </div>
+</div>
+
+<div id="mg" class="screen hidden"><div class="panel mg-panel" id="mgPanel"><div class="mg-head"><b id="mgTitle"></b><button class="ghost sm" onclick="window.__qgCloseMg && window.__qgCloseMg()">✕ Échap</button></div><div id="mgHint" class="small"></div><div id="mgBody"></div></div></div>
+<div id="camOverlay" class="hidden"><div class="cam-label" id="camLabel"></div><div class="cam-rec">● REC</div><div class="cam-hint">◀ ▶ (Q/D ou flèches) changer de caméra · E ou Échap : sortir</div></div>
+
+<div id="confirm" class="screen hidden"><div class="panel"><div id="cfText" style="font-size:20px;font-weight:600"></div><div class="small" id="cfSub"></div><div class="btns"><button id="cfYes" class="red big">🔥 Virer</button><button id="cfNo" class="ghost big">Annuler</button></div></div></div>
+
+<div id="help" class="screen hidden">
+  <div class="panel help-panel">
+    <h2>❓ Qui glande ? — Règles</h2>
+    <p>Bienvenue au <b>Super</b>, le supermarché du quartier. Parmi les employés se cachent des <b>glandeurs</b>… Le <b>directeur</b> doit les trouver et les virer.</p>
+    <h3>👔 Le directeur</h3>
+    <ul><li>Tout le monde sait qui c'est (cravate + étiquette dorée).</li><li>Approche-toi de quelqu'un et appuie sur <span class="key">F</span> pour le virer. Son vrai rôle est alors révélé.</li><li><b>Quota :</b> il doit virer quelqu'un avant la fin du chrono, sinon c'est <i>lui</i> qui est viré et un employé prend sa place.</li><li>Il peut lancer une <b>réunion</b> (<span class="key">R</span>) : tout le monde vote, puis il tranche.</li><li>Au bureau, il peut regarder les <b>caméras</b> (<span class="key">E</span>).</li></ul>
+    <h3>🛒 Jeu libre</h3>
+    <ul><li>Chacun a <b>3 tâches perso</b> (marqueurs jaunes, rouges pour les missions des glandeurs) : dès qu'une est finie, une nouvelle arrive. Elles rapportent un bonus.</li><li>Pour le reste, c'est <b>libre</b> : le panneau <b>« Le magasin a besoin de… »</b> liste ce qui presse (rayons vides, clients en caisse, téléphone, poubelles…). <span class="key">I</span> l'affiche dans le magasin.</li><li>Tout s'ouvre : <b>portes</b>, rideau du quai, casiers, placards, tiroirs, coffre-fort, vitrine à boissons… (<span class="key">E</span> ou clic). La porte de la <b>chambre froide</b> doit rester fermée, sinon les produits frais s'abîment !</li><li>Tu peux <b>prendre n'importe quel produit</b> en rayon, le reposer, le <b>poser par terre</b> (<span class="key">G</span>) ou le <b>lancer</b> (clic droit ou <span class="key">X</span>). Pareil pour les cartons. Les objets qui traînent dans le magasin font baisser la productivité, et un client touché part furieux…</li></ul>
+    <h3>😇 Les employés</h3>
+    <ul><li><b>Mise en rayon façon Supermarket Simulator</b> : prends en réserve le carton du bon produit (ou une caisse en chambre froide), vise l'étagère et pose les produits un par un (clic ou E maintenu).</li><li>Le reste du magasin : caisses (mini-jeu scanner), clients perdus (quiz), téléphone, four à pain, boucherie, fruits, quai, caddies, poubelles, inventaire, affiches promo, fleurs… Faire une chose qui n'est pas demandée rapporte peu.</li><li>Ramassent ce qui traîne, nettoient les incidents et aident le directeur à repérer les comportements louches.</li></ul>
+    <h3>😴 Les glandeurs</h3>
+    <ul><li>Sabotent en douce quand ils veulent (après chaque sabotage, quelques secondes de discrétion) : pyramide de conserves, lait renversé, micro-ondes, congélateur, four à fond, borne d'arcade, sieste, échantillons, fausse annonce au micro…</li><li>Et tout ce que la physique permet : vider un rayon par terre, bombarder les clients, laisser la chambre froide ouverte… tant que personne ne regarde. Ils connaissent leurs complices.</li></ul>
+    <h3>🏁 Victoire</h3>
+    <ul><li><b>Employés :</b> productivité à 100 %, ou tous les glandeurs virés.</li><li><b>Glandeurs :</b> productivité à 0 %, ou autant de glandeurs que d'autres employés restants.</li><li>À la fin de la journée : plus de 50 % = employés, sinon glandeurs.</li></ul>
+    <h3>🎮 Touches</h3>
+    <ul><li><span class="key">Z</span><span class="key">Q</span><span class="key">S</span><span class="key">D</span> ou <span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span> (ou ↑ ↓) : se déplacer · <span class="key">Maj</span> : courir</li><li>Clic sur le jeu puis souris, ou flèches ← → : tourner la caméra (Échap pour libérer la souris) · molette : hauteur de caméra</li><li><b>Clic gauche</b> ou <span class="key">E</span> : agir, ouvrir, prendre, poser (maintenir) ou lancer le mini-jeu (🎮) · <b>Clic droit</b> ou <span class="key">X</span> : lancer ce que tu tiens · <span class="key">G</span> : le poser par terre · <span class="key">I</span> : indices · <span class="key">V</span> : vue 1re / 3e personne</li><li><span class="key">Entrée</span> : chat · <span class="key">H</span> : cette aide</li></ul>
+    <h3>🌐 Jouer à plusieurs</h3>
+    <ul><li>Partage cette page avec tes amis (ils doivent être connectés à Claude), crée un salon et donne-leur le code à 4 lettres.</li><li>L'hôte peut compléter avec des bots. Si l'hôte quitte, la partie s'arrête.</li></ul>
+    <div style="text-align:center;margin-top:12px"><button id="btHelpClose" class="orange">C'est parti !</button></div>
+  </div>
+</div>
+
+<div id="loading">Ouverture du Super… 🛒</div>
