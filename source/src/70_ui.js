@@ -47,6 +47,7 @@ const UI = {
     this.refreshCustom = () => { sw($('#swShirt'), SHIRTS, 0); sw($('#swSkin'), SKINS, 1); $('#lbHat').textContent = HATS[ME.sk[2]]; $('#lbAcc').textContent = ACCS[ME.sk[3]]; this.saveProfile(); if (NET.room) setPres({ sk: ME.sk }); };
     document.querySelectorAll('[data-cyc]').forEach((b) => (b.onclick = () => { const i = +b.dataset.cyc, n = i === 2 ? HATS.length : ACCS.length; ME.sk = [...ME.sk]; ME.sk[i] = (ME.sk[i] + +b.dataset.d + n) % n; this.refreshCustom(); SFX.init(); SFX.play('tick'); }));
     this.refreshCustom();
+    document.querySelectorAll('[data-g]').forEach((b) => (b.onclick = () => { setGfx(b.dataset.g); SFX.init(); SFX.play('tick'); })); gfxButtons();
     $('#btCreate').onclick = () => { SFX.init(); doCreate(); };
     $('#btJoin').onclick = () => { SFX.init(); doJoin($('#inCode').value); };
     $('#inCode').addEventListener('keydown', (e) => { if (e.code === 'Enter' || e.key === 'Enter') { e.preventDefault(); doJoin($('#inCode').value); } });
@@ -80,7 +81,7 @@ const UI = {
     $('#hostCtl').classList.toggle('hidden', !C.isHost); $('#soloPref').classList.toggle('hidden', !solo); $('#btStart').classList.toggle('hidden', !C.isHost); $('#waitHost').classList.toggle('hidden', C.isHost);
     $('#selRole').value = H.pref || '';
   },
-  showGame() { this.showOnly(['hud']); this.meetSig = ''; this.myVote = null; try { document.activeElement?.blur?.(); $('#c').focus({ preventScroll: true }); } catch (e) {} },
+  showGame() { this.showOnly(['hud']); this.gameT0 = performance.now(); this.meetSig = ''; this.myVote = null; try { document.activeElement?.blur?.(); $('#c').focus({ preventScroll: true }); } catch (e) {} },
   showEnd(G) {
     this.showOnly(['endScr']); const en = G.en || {}; const win = en.w === 'emp';
     const myOrig = C.isHost ? H.orig[NET.me] : (G.en?.ro || {})[NET.me]; const iWon = myOrig ? (myOrig === 'gla') === !win : null;
@@ -92,11 +93,11 @@ const UI = {
     $('#endBody').innerHTML = (G.pl || []).map(([id, name, sk, bot]) => {
       const r = ro[id]; const was = (G.mh || []).includes(id); const role = r === 'gla' ? '😴 Glandeur' : r === 'mgr' ? '👔 Directeur' : '😇 Employé' + (was ? ' → 👔' : '');
       const status = (G.qt || []).includes(id) ? '🚪 Parti' : G.fd.includes(id) ? '📦 Viré' : '✅ En poste';
-      return `<tr><td><span class="dot" style="display:inline-block;vertical-align:middle;background:${SHIRTS[sk[0]]}"></span> ${esc(name)}${bot ? ' 🤖' : ''}${id === NET.me ? ' <b>(toi)</b>' : ''}</td><td>${role}</td><td>${status}</td><td>${st[id]?.[0] ?? '-'}</td><td>${r === 'gla' ? st[id]?.[1] ?? '-' : '-'}</td></tr>`;
+      return `<tr><td><img class="pt sm" alt="" style="background:${SHIRTS[sk[0]]}" src="${portraitURL(sk)}"> ${esc(name)}${bot ? ' 🤖' : ''}${id === NET.me ? ' <b>(toi)</b>' : ''}</td><td>${role}</td><td>${status}</td><td>${st[id]?.[0] ?? '-'}</td><td>${r === 'gla' ? st[id]?.[1] ?? '-' : '-'}</td></tr>`;
     }).join('');
     $('#btAgain').classList.toggle('hidden', !C.isHost); $('#endWait').textContent = C.isHost ? '' : 'En attente de l’hôte pour la prochaine partie…';
   },
-  toast(html, cls = '', ms = 3500) { const d = document.createElement('div'); d.className = 'toast ' + cls; d.innerHTML = html; $('#toasts').appendChild(d); setTimeout(() => { d.style.transition = 'opacity .4s'; d.style.opacity = '0'; setTimeout(() => d.remove(), 450); }, ms); while ($('#toasts').children.length > 4) $('#toasts').firstChild.remove(); },
+  toast(html, cls = '', ms = 3500) { const d = document.createElement('div'); d.className = 'toast ' + cls; d.innerHTML = html; $('#toasts').appendChild(d); setTimeout(() => { d.style.transition = 'opacity .4s'; d.style.opacity = '0'; setTimeout(() => d.remove(), 450); }, ms); while ($('#toasts').children.length > 3) $('#toasts').firstChild.remove(); },
   big(t2, t1, t3, ms = 4000, color) { const el = $('#bigMsg'); el.innerHTML = `<div class="bm"><div class="t1">${esc(t1)}</div><div class="t2" style="color:${color || '#fff'}">${esc(t2)}</div><div class="t3">${esc(t3)}</div></div>`; el.classList.remove('hidden'); clearTimeout(this.bigT); this.bigT = setTimeout(() => el.classList.add('hidden'), ms); },
   roleIntro(role, G) {
     const R = ROLE_INFO[role]; if (!R) return; let extra = R.desc;
@@ -127,7 +128,7 @@ const UI = {
     for (const [peer, p] of C.peerById) if (p.presence?.n) list.push({ id: peer, name: peer === NET.me ? ME.name : cleanText(p.presence.n, 14), sk: peer === NET.me ? ME.sk : sanitizeSk(p.presence.sk), host: p.presence.h === 1 });
     for (const b of G?.bots || []) list.push({ id: b[0], name: b[1], sk: b[2], bot: true });
     const sig = JSON.stringify(list) + C.isHost; if (sig === this.lobbySig) return; this.lobbySig = sig;
-    $('#lobbyList').innerHTML = list.map((l) => `<div class="pl"><span class="dot" style="background:${SHIRTS[l.sk[0]]}"></span><span>${HAT_EMOJI[l.sk[2]] || ''} ${esc(l.name)}${l.id === NET.me ? ' <b>(toi)</b>' : ''}</span>${l.host ? '<span class="tag host">Hôte</span>' : l.bot ? '<span class="tag">🤖 Bot</span>' : '<span class="tag">Joueur</span>'}</div>`).join('') || '<div class="small">Connexion…</div>';
+    $('#lobbyList').innerHTML = list.map((l) => `<div class="pl"><img class="pt" alt="" style="background:${SHIRTS[l.sk[0]]}" src="${portraitURL(l.sk)}"><span>${esc(l.name)}${l.id === NET.me ? ' <b>(toi)</b>' : ''}</span>${l.host ? '<span class="tag host">Hôte</span>' : l.bot ? '<span class="tag">🤖 Bot</span>' : '<span class="tag">Joueur</span>'}</div>`).join('') || '<div class="small">Connexion…</div>';
     $('#lbBots').textContent = H.botsCfg.length;
     const n = list.length; $('#btStart').disabled = n < 3; $('#btStart').textContent = n < 3 ? `▶ Il faut 3 participants (${n}/3)` : `▶ Lancer la partie (${Math.min(12, n)} participants)`;
   },
@@ -147,11 +148,12 @@ const UI = {
   updateHud(G) {
     const pr = clamp(G.pr || 0, 0, 100); $('#prodFill').style.width = pr + '%'; $('#prodPct').textContent = Math.round(pr) + ' %';
     const role = myRole(G), alive = isAlive(G), part = inRoster(G);
+    $('#hud').classList.toggle('fresh', performance.now() - (this.gameT0 || 0) < 25000); // description du rôle et rappel des touches : affichés au début, puis repliés (H pour les revoir)
     const R = ROLE_INFO[role];
     let rc = '';
     if (!part) rc = `<div class="rn">👀 SPECTATEUR</div><div class="rd">Tu rejoindras la prochaine partie.</div>`;
     else if (!R) rc = `<div class="rn">…</div><div class="rd">Attribution des rôles…</div>`;
-    else { rc = `<div class="rn" style="color:${R.color}">${R.emoji} ${R.name}</div><div class="rd">${esc(R.desc)}</div>`; if (role === 'gla') { const m = myMates(G); if (m.length) rc += `<div class="rd">🤝 Complice${m.length > 1 ? 's' : ''} : <b>${m.map((id) => esc(pName(G, id))).join(', ')}</b></div>`; } if (!alive) rc += `<div class="rd" style="color:#ffb3b3">👻 Tu as été viré : mode fantôme.</div>`; }
+    else { rc = `<div class="rn" style="color:${R.color}">${R.emoji} ${R.name}</div><div class="rd rdesc">${esc(R.desc)}</div>`; if (role === 'gla') { const m = myMates(G); if (m.length) rc += `<div class="rd">🤝 Complice${m.length > 1 ? 's' : ''} : <b>${m.map((id) => esc(pName(G, id))).join(', ')}</b></div>`; } if (!alive) rc += `<div class="rd" style="color:#ffb3b3">👻 Tu as été viré : mode fantôme.</div>`; }
     $('#roleCard').innerHTML = rc;
     let tl = '', rb = '', rbH = '';
     const row = (ic, tx, p, sub, cls = '') => `<div class="task ${cls}"><span class="ic">${ic}</span><span class="tx">${esc(tx)}${sub ? `<span class="sub">${esc(sub)}</span>` : ''}</span>${p ? `<span class="d">${Math.round(Math.hypot(p.x - ME.x, p.z - ME.z))} m</span>` : ''}</div>`;
@@ -171,16 +173,17 @@ const UI = {
     $('#taskList').innerHTML = tl;
     $('#reqBox').classList.toggle('hidden', !rb); $('#rbH').textContent = rbH; $('#reqList').innerHTML = rb;
     const ms = G.ms || [];
-    $('#incList').innerHTML = ms.length ? ms.map((m) => `<div class="task"><span class="ic">${MESS[m[1]].icon}</span><span class="tx">${MESS[m[1]].name}${m[1] === 'tag' || m[1] === 'mix' ? ' — ' + SHELF_NAMES[m[4]] : ''}<span class="sub">depuis ${fmtT(Math.max(0, (m[5] || 0) - (G.t || 0)))}</span></span><span class="d">${Math.round(Math.hypot(m[2] - ME.x, m[3] - ME.z))} m</span></div>`).join('') : '<div class="small">Rien à signaler ✨</div>';
+    $('#incBox').classList.toggle('hidden', !ms.length); $('#incList').innerHTML = ms.length ? ms.map((m) => `<div class="task"><span class="ic">${MESS[m[1]].icon}</span><span class="tx">${MESS[m[1]].name}${m[1] === 'tag' || m[1] === 'mix' ? ' — ' + SHELF_NAMES[m[4]] : ''}<span class="sub">depuis ${fmtT(Math.max(0, (m[5] || 0) - (G.t || 0)))}</span></span><span class="d">${Math.round(Math.hypot(m[2] - ME.x, m[3] - ME.z))} m</span></div>`).join('') : '<div class="small">Rien à signaler ✨</div>';
     const glaLeft = (G.ng || 0) - Object.values(G.fr || {}).filter((r) => r === 'gla').length; const aliveN = (G.pl || []).filter((p) => isAlive(G, p[0])).length;
-    $('#timers').innerHTML = `<div>🕐 Fin de journée : <b>${fmtT(G.t)}</b></div><div class="${G.q < 30 ? 'warn' : ''}">⏰ Quota du directeur : <b>${fmtT(G.q)}</b></div><div>😴 Glandeurs encore là : <b>${glaLeft}</b></div><div>👥 Personnel restant : <b>${aliveN}</b></div><div>👔 Directeur : <b>${esc(pName(G, G.mg))}</b></div>`;
+    $('#tDay').textContent = fmtT(G.t); $('#tQuota').textContent = fmtT(G.q); $('#chQuota').classList.toggle('warn', G.q < 30);
+    $('#timers').innerHTML = `<span class="chip" title="Glandeurs encore là">😴 Glandeurs <b>${glaLeft}</b></span><span class="chip" title="Personnel restant">👥 Personnel <b>${aliveN}</b></span><span class="chip dir">👔 Directeur <b>${esc(pName(G, G.mg))}</b></span>`;
     $('#mgrCtl').classList.toggle('hidden', !(role === 'mgr' && alive && G.ph === 'play'));
     $('#btMeet').disabled = (G.mcd || 0) > 0; $('#btMeet').textContent = (G.mcd || 0) > 0 ? `🔔 Réunion (dispo dans ${Math.ceil(G.mcd)} s)` : '🔔 Réunion d’équipe (R)';
     $('#crosshair').classList.toggle('hidden', ME.view !== 1);
     const sp = $('#spect'); if (part && !alive) { sp.classList.remove('hidden'); sp.textContent = '👻 Mode fantôme : les vivants ne te voient pas'; } else if (!part) { sp.classList.remove('hidden'); sp.textContent = '👀 Spectateur'; } else sp.classList.add('hidden');
   },
   updateMeeting(G) {
-    const show = G.ph === 'meet' && !!G.mt; $('#meeting').classList.toggle('hidden', !show); if (!show) { this.myVote = null; return; }
+    const show = G.ph === 'meet' && !!G.mt; $('#meeting').classList.toggle('hidden', !show); $('#hud').classList.toggle('meet', show); if (!show) { this.myVote = null; return; }
     const mt = G.mt, role = myRole(G), alive = isAlive(G);
     $('#meetT').textContent = fmtT(mt.t) + (mt.s === 'dec' ? ' · décision' : '');
     const cnt = {}; for (const v of Object.values(mt.v || {})) cnt[v] = (cnt[v] || 0) + 1;
@@ -191,7 +194,7 @@ const UI = {
       let btn = '';
       if (dec && iMgr && id !== NET.me) btn = `<button class="red sm" data-mv="${esc(id)}">🔥 Virer</button>`;
       else if (!dec && alive && !iMgr && id !== NET.me && id !== G.mg) btn = `<button class="${this.myVote === id ? 'orange' : 'ghost'} sm" data-mv="${esc(id)}">${this.myVote === id ? '✔ Mon vote' : 'Voter'}</button>`;
-      return `<div class="mc ${id === NET.me ? 'me' : ''} ${this.myVote === id ? 'voted' : ''}"><div class="av" style="background:${SHIRTS[sk[0]]}">${HAT_EMOJI[sk[2]] || '🙂'}</div><div class="nm">${esc(pName(G, id))}${id === G.mg ? ' 👔' : ''}${id === NET.me ? ' (toi)' : ''}</div><div class="vs">${voters.length ? '🗳️ ' + voters.length + ' : ' + voters.map(esc).join(', ') : ''}</div>${btn}</div>`;
+      return `<div class="mc ${id === NET.me ? 'me' : ''} ${this.myVote === id ? 'voted' : ''}"><img class="av" alt="" style="background:${SHIRTS[sk[0]]}" src="${portraitURL(sk)}"><div class="nm">${esc(pName(G, id))}${id === G.mg ? ' 👔' : ''}${id === NET.me ? ' (toi)' : ''}</div><div class="vs">${voters.length ? '<span class="pips">' + '●'.repeat(voters.length) + '</span> ' + voters.map(esc).join(', ') : ''}</div>${btn}</div>`;
     }).join('');
     $('#meetGrid').querySelectorAll('[data-mv]').forEach((b) => (b.onclick = () => this.meetClick(b.dataset.mv)));
     const skip = $('#meetSkip'); const skips = cnt['-'] || 0;

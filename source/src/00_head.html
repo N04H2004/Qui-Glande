@@ -186,10 +186,89 @@ input:focus,select:focus{border-color:var(--orange)}
 .mg-mash{font-size:80px;text-align:center;cursor:pointer;transition:transform .05s;user-select:none}
 .shake{animation:shk .3s}
 @keyframes shk{0%,100%{transform:none}25%{transform:translateX(-10px)}75%{transform:translateX(10px)}}
+
+/* ================= Refonte de l'interface : panneaux « ardoise chaude », hiérarchie claire, moins de texte permanent ================= */
+:root{--panel:rgba(40,28,48,.84);--edge:rgba(255,255,255,.12)}
+.panel{background:var(--panel);border:2px solid var(--edge);border-radius:16px;box-shadow:0 4px 0 rgba(20,12,26,.5),0 14px 28px rgba(0,0,0,.26);backdrop-filter:blur(10px) saturate(1.15);-webkit-backdrop-filter:blur(10px) saturate(1.15)}
+#vig{position:fixed;inset:0;pointer-events:none;z-index:5;display:none;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 58%,rgba(40,14,22,.26) 100%)}
+.gfx-low #vig{display:block}
+.gfxrow{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.06);border-radius:14px;padding:8px 10px}
+.gfxrow>span{width:86px;font-size:14px;opacity:.85}
+.seg{display:flex;gap:6px;flex:1}
+.seg button{flex:1}
+.seg button.on{background:var(--orange);box-shadow:0 3px 0 var(--orange2)}
+/* bandeau du haut : chrono, productivité, quota */
+#prodWrap{top:10px;width:min(680px,66vw);display:flex;align-items:flex-end;gap:10px}
+#prodWrap .prod{flex:1;min-width:0}
+.prod-label{font-size:11px;letter-spacing:2.5px;opacity:.95}
+#prodBar{height:26px;border-radius:13px;background:rgba(30,20,36,.6);border:2px solid rgba(255,255,255,.92);box-shadow:0 3px 0 rgba(20,12,26,.45);margin-top:2px}
+#prodFill{background:linear-gradient(90deg,#ff4d5a,#ffb400 45%,#3ee0a1);box-shadow:inset 0 -6px 0 rgba(0,0,0,.12),inset 0 3px 0 rgba(255,255,255,.25)}
+#prodPct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,.75)}
+.chipT{background:var(--panel);border:2px solid var(--edge);border-radius:13px;padding:4px 11px 5px;min-width:92px;line-height:1.05;box-shadow:0 3px 0 rgba(20,12,26,.45)}
+.chipT small{display:block;font-size:9px;letter-spacing:1.4px;opacity:.72;font-weight:600;white-space:nowrap}
+.chipT b{font-size:20px;font-variant-numeric:tabular-nums}
+.chipT.warn{background:#b7303a;border-color:#ff9aa2;animation:qpulse .7s ease-in-out infinite alternate}
+@keyframes qpulse{from{transform:scale(1)}to{transform:scale(1.07)}}
+/* colonne gauche */
+#left{width:284px;gap:7px}
+#roleCard{padding:8px 12px}
+#roleCard .rn{font-size:19px;letter-spacing:.5px}
+#roleCard .rd{font-size:12.5px;line-height:1.3}
+#hud:not(.fresh) .rdesc{display:none}
+#taskBox{padding:9px 11px;font-size:13.5px}
+#taskBox .h{font-size:12px;letter-spacing:1.2px;text-transform:uppercase;opacity:.8;margin-bottom:5px}
+#taskBox .h.small{margin-top:9px;padding-top:7px;border-top:1px solid rgba(255,255,255,.1);font-size:11px}
+.task{gap:7px;padding:5px 7px;margin-bottom:3px;border-radius:9px;background:rgba(255,255,255,.07);border-left:3px solid var(--gold);align-items:center}
+.task.s{border-left-color:var(--red);background:rgba(255,77,90,.13)}
+.task.urg{border-left-color:var(--orange)}
+#reqList .task,#incList .task{background:none;border-left-color:rgba(255,255,255,.22);padding:2px 7px;margin-bottom:1px;font-size:12.5px}
+#incList .task{border-left-color:var(--orange)}
+.task .d{background:rgba(0,0,0,.28);border-radius:8px;padding:1px 6px;font-size:11px;opacity:.9}
+.task .sub{font-size:11.5px}
+/* colonne droite */
+#mini{border-radius:16px;background:rgba(30,22,38,.82);border:2px solid var(--edge);box-shadow:0 4px 0 rgba(20,12,26,.5)}
+#timers{padding:6px;flex-direction:row;flex-wrap:wrap;gap:5px;background:none;border:none;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
+.chip{background:var(--panel);border:1.5px solid var(--edge);border-radius:10px;padding:3px 8px;font-size:12px;white-space:nowrap}
+.chip b{font-size:13px;margin-left:3px}
+.chip.dir{border-color:rgba(255,200,61,.55)}
+#mgrCtl{font-size:12.5px}
+/* invite d'action, viseur, rappel des touches */
+#prompt{bottom:104px;border-radius:999px;padding:9px 22px;border:2px solid var(--edge);box-shadow:0 4px 0 rgba(20,12,26,.5);min-width:240px}
+#promptBar{height:6px}
+.key{border-radius:6px;padding:0 7px;font-size:.92em;box-shadow:0 2px 0 #9aa;margin:0 2px}
+#keys{background:rgba(30,22,38,.55);border-radius:10px;padding:4px 10px;max-width:min(760px,62vw);text-shadow:none;font-size:12px}
+#keys .short{display:none}
+#hud:not(.fresh) #keys .full{display:none}
+#hud:not(.fresh) #keys .short{display:inline}
+#spect{top:74px;border-radius:999px;font-size:14px}
+/* notifications */
+#toasts{top:70px;gap:5px}
+.toast{font-size:15px;padding:7px 16px;border-radius:12px;border:2px solid var(--edge);border-left:5px solid var(--teal);box-shadow:0 4px 0 rgba(20,12,26,.4)}
+.toast.fire{border-left-color:#ffb3b8}.toast.ann{border-left-color:var(--gold)}.toast.good{border-left-color:var(--good)}
+.cl{border-radius:9px;background:rgba(30,22,38,.66)}
+#bigMsg .bm{border:3px solid var(--edge);box-shadow:0 8px 0 rgba(20,12,26,.55),0 24px 60px rgba(0,0,0,.4)}
+/* réunion : bandeau en bas, la table de la salle de pause reste visible au-dessus */
+#meeting{align-items:flex-end;justify-content:flex-end;background:linear-gradient(180deg,rgba(8,10,18,0) 30%,rgba(8,10,18,.5) 100%);padding:0 12px 12px 0}
+.meet-panel{width:min(880px,calc(100vw - 420px));max-height:52vh}
+@media (max-width:1000px){#meeting{justify-content:center;padding:0 0 250px}.meet-panel{width:96vw;max-height:42vh}}
+#hud.meet #tbH,#hud.meet #taskList,#hud.meet #reqBox,#hud.meet #prompt,#hud.meet #keys{display:none}
+.meet-head{margin-bottom:8px}.meet-head h2{font-size:22px}
+#meetGrid{grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:7px}
+.mc{background:rgba(255,255,255,.07);border-radius:13px;padding:7px 7px 8px;gap:4px;border:2px solid transparent}
+.mc.voted{border-color:var(--gold);background:rgba(255,200,61,.12)}
+.mc img.av{width:62px;height:62px;border-radius:50%;border:3px solid #fff;object-fit:cover;box-shadow:0 3px 0 rgba(20,12,26,.5)}
+.mc .nm{font-size:14px}
+.mc .vs{font-size:11.5px;line-height:1.2}
+.pips{letter-spacing:2px;color:var(--gold)}
+img.pt{width:36px;height:36px;border-radius:50%;border:2px solid rgba(255,255,255,.85);flex:none;object-fit:cover}
+img.pt.sm{width:26px;height:26px;vertical-align:middle;margin-right:4px}
+.pl{padding:4px 10px}
+
 </style>
 </head>
 <body>
 <canvas id="c" tabindex="0"></canvas>
+<div id="vig"></div>
 
 <div id="title" class="screen hidden">
   <div class="logo"><div class="l1">QUI<br>GLANDE<span>&nbsp;?</span></div><div class="l2">🛒 au Super — supermarché de quartier</div></div>
@@ -202,6 +281,7 @@ input:focus,select:focus{border-color:var(--orange)}
       <div class="row"><span>Chapeau</span><button class="ghost sm" data-cyc="2" data-d="-1">◀</button><b id="lbHat"></b><button class="ghost sm" data-cyc="2" data-d="1">▶</button></div>
       <div class="row"><span>Accessoire</span><button class="ghost sm" data-cyc="3" data-d="-1">◀</button><b id="lbAcc"></b><button class="ghost sm" data-cyc="3" data-d="1">▶</button></div>
     </div>
+    <div class="gfxrow"><span>Graphismes</span><div class="seg"><button class="ghost sm" data-g="low">Bas</button><button class="ghost sm" data-g="med">Moyen</button><button class="ghost sm" data-g="high">Haut</button></div></div>
     <div class="actions" id="titleActions">
       <button id="btCreate" class="big">🎮 Créer un salon</button>
       <div class="join"><input id="inCode" maxlength="4" placeholder="CODE" autocomplete="off"><button id="btJoin" class="orange">Rejoindre</button></div>
@@ -229,10 +309,10 @@ input:focus,select:focus{border-color:var(--orange)}
 </div>
 
 <div id="hud" class="hidden">
-  <div id="prodWrap"><div class="prod-label">PRODUCTIVITÉ DU MAGASIN</div><div id="prodBar"><div id="prodFill"></div><div id="prodMid"></div></div><div id="prodPct">50 %</div></div>
+  <div id="prodWrap"><div class="chipT" id="chDay"><small>FIN DE JOURNÉE</small><b id="tDay">10:00</b></div><div class="prod"><div class="prod-label">PRODUCTIVITÉ DU MAGASIN</div><div id="prodBar"><div id="prodFill"></div><div id="prodMid"></div><div id="prodPct">50 %</div></div></div><div class="chipT" id="chQuota"><small>QUOTA DU DIRECTEUR</small><b id="tQuota">2:30</b></div></div>
   <div id="left">
     <div id="roleCard" class="panel"></div>
-    <div id="taskBox" class="panel"><div class="h" id="tbH">🏪 Le magasin a besoin de…</div><div id="taskList"></div><div id="reqBox"><div class="h small" id="rbH"></div><div id="reqList"></div></div><div class="h small">⚠️ Incidents</div><div id="incList"></div></div>
+    <div id="taskBox" class="panel"><div class="h" id="tbH">🏪 Le magasin a besoin de…</div><div id="taskList"></div><div id="reqBox"><div class="h small" id="rbH"></div><div id="reqList"></div></div><div id="incBox"><div class="h small">⚠️ Incidents</div><div id="incList"></div></div></div>
   </div>
   <div id="right">
     <canvas id="mini" width="500" height="396"></canvas>
@@ -246,7 +326,7 @@ input:focus,select:focus{border-color:var(--orange)}
   <div id="prompt" class="hidden"><div class="pl2" id="promptText"></div><div id="promptBar"><div id="promptFill"></div></div><div class="pl2 small" id="promptText2"></div></div>
   <div id="crosshair" class="hidden"></div>
   <div id="spect" class="hidden"></div>
-  <div id="keys" class="small">Clic dans le jeu = souris · ZQSD/WASD : bouger · Maj : courir · Clic gauche ou E : agir / prendre / poser · Clic droit ou X : lancer · G : poser par terre · I : indices · V : vue 1re/3e pers. · Entrée : chat · H : aide</div>
+  <div id="keys" class="small"><span class="full">Clic dans le jeu = souris · ZQSD/WASD : bouger · Maj : courir · Clic gauche ou E : agir / prendre / poser · Clic droit ou X : lancer · G : poser par terre · I : indices · V : vue 1re/3e pers. · Entrée : chat · H : aide</span><span class="short"><span class="key">H</span> aide &amp; touches · <span class="key">Entrée</span> chat · <span class="key">I</span> indices · <span class="key">V</span> vue</span></div>
 </div>
 
 <div id="chat"><div id="chatLog"></div><input id="chatIn" class="hidden" maxlength="80" placeholder="Message… (Entrée pour envoyer, Échap pour fermer)" autocomplete="off"></div>
@@ -294,6 +374,9 @@ input:focus,select:focus{border-color:var(--orange)}
     <ul><li><b>Employés :</b> productivité à 100 %, ou tous les glandeurs virés.</li><li><b>Glandeurs :</b> productivité à 0 %, ou autant de glandeurs que d'autres employés restants.</li><li>À la fin de la journée : plus de 50 % = employés, sinon glandeurs.</li></ul>
     <h3>🎮 Touches</h3>
     <ul><li><span class="key">Z</span><span class="key">Q</span><span class="key">S</span><span class="key">D</span> ou <span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span> (ou ↑ ↓) : se déplacer · <span class="key">Maj</span> : courir</li><li>Clic sur le jeu puis souris, ou flèches ← → : tourner la caméra (Échap pour libérer la souris) · molette : hauteur de caméra</li><li><b>Clic gauche</b> ou <span class="key">E</span> : agir, ouvrir, prendre, poser (maintenir) ou lancer le mini-jeu (🎮) · <b>Clic droit</b> ou <span class="key">X</span> : lancer ce que tu tiens · <span class="key">G</span> : le poser par terre · <span class="key">I</span> : indices · <span class="key">V</span> : vue 1re / 3e personne</li><li><span class="key">Entrée</span> : chat · <span class="key">H</span> : cette aide</li></ul>
+    <h3>🖥️ Graphismes</h3>
+    <div class="gfxrow"><span>Graphismes</span><div class="seg"><button class="ghost sm" data-g="low">Bas</button><button class="ghost sm" data-g="med">Moyen</button><button class="ghost sm" data-g="high">Haut</button></div></div>
+    <div class="small" style="margin-top:4px"><b>Moyen</b> convient à la plupart des PC portables. <b>Haut</b> ajoute reflets du sol et ombrage fin ; <b>Bas</b> coupe les effets pour les machines modestes. Si le jeu ralentit, la résolution baisse toute seule.</div>
     <h3>🌐 Jouer à plusieurs</h3>
     <ul><li>Partage cette page avec tes amis (ils doivent être connectés à Claude), crée un salon et donne-leur le code à 4 lettres.</li><li>L'hôte peut compléter avec des bots. Si l'hôte quitte, la partie s'arrête.</li></ul>
     <div style="text-align:center;margin-top:12px"><button id="btHelpClose" class="orange">C'est parti !</button></div>
