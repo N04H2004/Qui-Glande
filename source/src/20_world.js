@@ -337,6 +337,7 @@ function buildAtlas() {
       const i = cat * 8 + v, ox = (i % ATLAS.cols) * C, oy = Math.floor(i / ATLAS.cols) * C, base = PALETTES[cat][v & 3], acc = PALETTES[cat][(v + 1 + (v >> 2)) & 3];
       x.save(); x.translate(ox, oy); x.beginPath(); x.rect(0, 0, C, C); x.clip();
       x.fillStyle = base; x.fillRect(0, 0, C, C);
+      if (v >= 4) { x.fillStyle = 'rgba(42,33,53,.18)'; x.fillRect(0, 0, C, C); x.fillStyle = acc === base ? '#ffffff' : acc; x.globalAlpha = 0.85; x.beginPath(); x.moveTo(0, 58); x.lineTo(C, 18); x.lineTo(C, 44); x.lineTo(0, 84); x.fill(); x.globalAlpha = 1; for (let d = 0; d < 6; d++) { x.fillStyle = 'rgba(255,255,255,.22)'; x.beginPath(); x.arc(14 + d * 21, C - 26, 4, 0, 6.3); x.fill(); } }
       const g = x.createLinearGradient(0, 0, C, 0); g.addColorStop(0, 'rgba(0,0,0,.1)'); g.addColorStop(0.3, 'rgba(255,255,255,.1)'); g.addColorStop(1, 'rgba(0,0,0,.08)'); x.fillStyle = g; x.fillRect(0, 0, C, C);
       x.fillStyle = 'rgba(0,0,0,.14)'; x.fillRect(0, C - 14, C, 14);                       // bas : couleur unie plus sombre (dessus/dessous des boîtes)
       x.fillStyle = base === '#ffffff' ? '#e9edf1' : '#ffffff'; x.fillRect(0, 0, C, 9);   // haut : bouchons et goulots
@@ -369,16 +370,18 @@ function prodMat(cat, v) {
 }
 function instGeo(src, cells) { const g = new THREE.BufferGeometry(); for (const k of ['position', 'normal', 'uv']) if (src.attributes[k]) g.setAttribute(k, src.attributes[k]); if (src.index) g.setIndex(src.index); g.boundingSphere = src.boundingSphere; g.boundingBox = src.boundingBox; g.setAttribute('aCell', new THREE.InstancedBufferAttribute(cells, 2)); return g; }
 function buildShelf(si) {
-  const S2 = SHELVES[si], per = S2.per; const byType = {};
+  const S2 = SHELVES[si]; const byType = {};
   for (let slot = 0; slot < S2.n; slot++) { const v = slotVar(si, slot, S2.cols), ty = ptypeOf(si, v); (byType[ty] = byType[ty] || []).push([slot, v]); }
   const parts = [];
   for (const ty in byType) {
+    // facings : autant de produits côte à côte que la largeur de l'emplacement le permet (3 à 4), pour des rayons bien garnis
+    const T = PTYPE[ty], pw = T[0] === 'c' ? T[1] * 2 : T[1], wide = S2.kind === 'gond' || S2.kind === 'fridge', per = wide ? clamp(Math.floor((S2.dz * 0.97) / (pw + 0.014)), S2.per, 4) : S2.per, spread = wide ? pw + 0.014 : S2.spread;
     const list = byType[ty], n = list.length * per, hh = prodHH(si, list[0][1], false), cells = new Float32Array(n * 2);
     const base = [], slotOf = []; let k = 0;
     for (const [slot, v] of list) {
       const [px, py, pz] = slotPos(si, slot), cl = cellOf(si, v);
       for (let j = 0; j < per; j++) {
-        DUMMY.position.set(px + rnd(-0.02, 0.02), py + hh, pz + (j - (per - 1) / 2) * S2.spread); DUMMY.rotation.set(0, (S2.side || 1) > 0 ? -HP + rnd(-0.12, 0.12) : HP + rnd(-0.12, 0.12), 0); DUMMY.scale.set(1, rnd(0.93, 1.05), 1); DUMMY.updateMatrix();
+        DUMMY.position.set(px + rnd(-0.02, 0.02), py + hh, pz + (j - (per - 1) / 2) * spread); DUMMY.rotation.set(0, (S2.side || 1) > 0 ? -HP + rnd(-0.12, 0.12) : HP + rnd(-0.12, 0.12), 0); DUMMY.scale.set(1, rnd(0.93, 1.05), 1); DUMMY.updateMatrix();
         base.push(DUMMY.matrix.clone()); slotOf.push(slot); cells[k * 2] = cl[0]; cells[k * 2 + 1] = cl[1]; k++;
       }
     }
@@ -432,7 +435,7 @@ function buildWorld() {
   floor(-24, 24, 14, 26.5, TEX.asphalt, null, -0.005, { rough: 0.95, out: true }); floor(-30, -20, -15, -5.5, TEX.concrete, '#d8d8d8', -0.004, { rough: 0.9, out: true });
   MAT_ZONE = 'in';
   floor(-20, 20, -6, 14, TEX.tiles, null, 0.002, { rough: 1, rmap: TEX.tilesR, refl: true }); floor(-20, -6, -14, -6, TEX.concrete, null, 0.002, { rough: 0.86 }); floor(-6, 1, -14, -6, TEX.ice, null, 0.002, { rough: 0.2, refl: true }); floor(1, 10, -14, -6, TEX.wood, null, 0.002, { rough: 0.45, refl: true }); floor(10, 20, -14, -6, TEX.carpet, null, 0.002, { rough: 1 });
-  buildStructure(); MAT_ZONE = 'out'; buildOutdoor(); MAT_ZONE = 'in'; buildSales(); buildBackRooms(); buildBunting(); buildProps(); buildAO();
+  buildStructure(); MAT_ZONE = 'out'; buildOutdoor(); MAT_ZONE = 'in'; buildSales(); buildBackRooms(); buildBunting(); buildProps(); buildDecor(); buildAO();
 }
 function buildStructure() {
   // murs crème + soubassement turquoise + liseré orange
@@ -450,7 +453,7 @@ function buildStructure() {
   // luminaires : caisson + deux tubes néon légèrement bleutés (le bloom les fait rayonner)
   const fixture = (x, z, len = 2.4, tube = NEON, rot = 0) => { const ry = rot ? Math.PI / 2 : 0; mbox(len + 0.2, 0.07, 0.4, '#e9edf1', x, 3.945, z, { cast: false, recv: false, ol: false, ry }); for (const s of [-1, 1]) mbox(len, 0.05, 0.085, null, x + (rot ? s * 0.1 : 0), 3.895, z + (rot ? 0 : s * 0.1), { mat: tube, cast: false, recv: false, ol: false, r: 0, ry }); };
   for (let x = -16; x <= 16; x += 5.3) for (let z = -3; z <= 12; z += 4.5) fixture(x, z);
-  fixture(-16.5, -10, 2.4, NEON, 1); fixture(-10, -10, 2.4, NEON, 1); fixture(-2.5, -10, 2.2, NEON_COLD, 1); fixture(15, -9.2, 2.4, NEON);
+  fixture(-16.5, -10, 2.4, NEON_FLICK, 1); // néon fatigué de la réserve : il grésille (voir 26_decor.js) fixture(-10, -10, 2.4, NEON, 1); fixture(-2.5, -10, 2.2, NEON_COLD, 1); fixture(15, -9.2, 2.4, NEON);
   for (const x of [4.9, 7.1]) { mcyl(0.012, 1.3, '#2a2135', x, 3.35, -10.2, { cast: false, ol: false }); mcone(0.34, 0.28, '#ff8a3d', x, 2.62, -10.2, { cast: false }); msph(0.1, null, x, 2.5, -10.2, { mat: BULB, cast: false, recv: false, ol: false }); }
   // façade (extérieur : reflète le ciel)
   MAT_ZONE = 'out';
@@ -755,6 +758,7 @@ function syncWorld(Gs) {
   for (const o of WORLD.messes.values()) if (o && o.userData.a < 1) { const a = (o.userData.a = Math.min(1, o.userData.a + dt / 0.5)), e = easeOutBack(a); if (o.userData.flat) o.scale.set(e, Math.min(1, a * 3), e); else o.scale.setScalar(e); }
   for (let i = WORLD.dying.length - 1; i >= 0; i--) { const d = WORLD.dying[i]; d.t += dt / 0.28; if (d.t >= 1) { scene.remove(d.o); WORLD.dying.splice(i, 1); } else d.o.scale.setScalar(1 - d.t); }
   if (Gs) fxWorld(Gs, dt);
+  decorTick(dt, Gs);
   // four, micro-ondes, téléphone
   const t = WORLD.clock;
   const ov = Gs?.ov?.[0] ?? 0; const wc = WORLD.ovenWin.material.color;
