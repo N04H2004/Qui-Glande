@@ -2319,7 +2319,9 @@ function makeFakeRoom() {
 async function netJoin(code, create) { const r = await NET.lobby.join('qg-' + code.toLowerCase(), STANDALONE ? { create: !!create } : undefined); NET.room = r; NET.pres = {}; NET.solo = false; NET.me = null; return r; }
 function netSolo() { NET.room = makeFakeRoom(); NET.pres = {}; NET.solo = true; NET.me = 'solo-me'; }
 async function netLeave() { const r = NET.room; const solo = NET.solo; NET.room = null; NET.pres = {}; NET.me = null; NET.solo = false; if (r && !solo) { try { await r.leave(); } catch (e) {} } }
-function presSize(extra) { return JSON.stringify(extra ? { ...NET.pres, ...extra } : NET.pres).length; }
+const PRES_ENC = new TextEncoder();
+// taille en octets UTF-8 (la limite des salons Claude est de 4 Kio en octets : un « é » en compte deux)
+function presSize(extra) { return PRES_ENC.encode(JSON.stringify(extra ? { ...NET.pres, ...extra } : NET.pres)).length; }
 function setPres(patch) {
   if (!NET.room) return;
   for (const k in patch) { if (patch[k] === null) delete NET.pres[k]; else NET.pres[k] = patch[k]; }
