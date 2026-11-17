@@ -1,13 +1,13 @@
 // ======================= MOBILIER INTERACTIF : portes, placards, tiroirs, objets lancés =======================
 // boîte dynamique (non fusionnée) avec contour à la bonne épaisseur
 function dbox(w, h, d, color, x, y, z, parent, o = {}) {
-  const g = new THREE.BoxGeometry(w, h, d); const m = new THREE.Mesh(g, o.mat || mat(color)); m.position.set(x, y, z); if (o.rx) m.rotation.x = o.rx; if (o.ry) m.rotation.y = o.ry; if (o.rz) m.rotation.z = o.rz;
+  const g = rboxGeo(w, h, d, o.r !== undefined ? o.r : Math.min(w, h, d) < 0.03 ? 0 : clamp(Math.min(w, h, d) * 0.22, 0.004, 0.04)); const m = new THREE.Mesh(g, o.mat || mat(color)); m.position.set(x, y, z); if (o.rx) m.rotation.x = o.rx; if (o.ry) m.rotation.y = o.ry; if (o.rz) m.rotation.z = o.rz;
   m.castShadow = o.cast !== false; m.receiveShadow = true; parent.add(m);
   if (o.ol !== false) { const ol = new THREE.Mesh(outlineGeo(g, o.olt || 0.01), OUTLINE_MAT); ol.position.copy(m.position); ol.rotation.copy(m.rotation); parent.add(ol); }
   return m;
 }
 function dcyl(r, h, color, x, y, z, parent, o = {}) {
-  const g = flatG(new THREE.CylinderGeometry(r, r, h, o.seg || 8)); const m = new THREE.Mesh(g, mat(color)); m.position.set(x, y, z); if (o.rx) m.rotation.x = o.rx; if (o.rz) m.rotation.z = o.rz; m.castShadow = true; parent.add(m);
+  const g = new THREE.CylinderGeometry(r, r, h, o.seg || 12); const m = new THREE.Mesh(g, mat(color)); m.position.set(x, y, z); if (o.rx) m.rotation.x = o.rx; if (o.rz) m.rotation.z = o.rz; m.castShadow = true; parent.add(m);
   if (o.ol !== false) { const ol = new THREE.Mesh(outlineGeo(g, 0.008), OUTLINE_MAT); ol.position.copy(m.position); ol.rotation.copy(m.rotation); parent.add(ol); }
   return m;
 }
@@ -30,7 +30,7 @@ function buildLeaf(L, o) {
   const y0 = L.y0 || 0, cy = y0 + L.hgt / 2, w = L.w;
   if (L.glass) {
     const fr = 0.07; dbox(w, fr, L.th, L.col, w / 2, y0 + fr / 2, 0, pv); dbox(w, fr, L.th, L.col, w / 2, y0 + L.hgt - fr / 2, 0, pv); dbox(fr, L.hgt, L.th, L.col, fr / 2, cy, 0, pv); dbox(fr, L.hgt, L.th, L.col, w - fr / 2, cy, 0, pv);
-    const gl = new THREE.Mesh(new THREE.BoxGeometry(w - 2 * fr, L.hgt - 2 * fr, 0.01), new THREE.MeshBasicMaterial({ color: '#cdeeff', transparent: true, opacity: 0.28, depthWrite: false })); gl.position.set(w / 2, cy, 0); pv.add(gl);
+    const gl = new THREE.Mesh(new THREE.BoxGeometry(w - 2 * fr, L.hgt - 2 * fr, 0.01), glassMat('#d4eeff', 0.14)); gl.position.set(w / 2, cy, 0); pv.add(gl);
     dbox(0.04, 0.9, 0.04, '#9aa3ad', w - 0.16, cy, L.th / 2 + 0.04, pv);
   } else {
     dbox(w, L.hgt, L.th, L.col, w / 2, cy, 0, pv);
@@ -102,15 +102,16 @@ function buildProps() {
     if (o.leaves) M.leaves = o.leaves.map((L) => buildLeaf(L, o));
     else if (o.type === 'drawer') M.g = buildDrawer(o);
     else if (o.type === 'shutter') M.g = buildShutter(o);
+    for (const pv of M.leaves) compactGroup(pv); if (M.g) compactGroup(M.g);
     OPENM[i] = M;
   });
   // --- portes coulissantes automatiques de l'entrée ---
-  const glassM = new THREE.MeshBasicMaterial({ color: '#cdeeff', transparent: true, opacity: 0.3, depthWrite: false });
+  MAT_ZONE = 'out'; const glassM = glassMat('#d4eeff', 0.1); MAT_ZONE = 'in';
   for (const [x0, x1] of [[10, 11.5], [14.5, 16]]) { mbox(x1 - x0, 0.08, 0.08, '#9aa3ad', (x0 + x1) / 2, 2.84, 14.08); const gl = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, 2.76, 0.02), glassM); gl.position.set((x0 + x1) / 2, 1.42, 14.08); scene.add(gl); }
   for (const [x0, sd] of [[11.5, -1], [13, 1]]) {
     const g = new THREE.Group(); g.userData.dyn = true; scene.add(g); g.position.set(x0, 0, 14.0);
     dbox(1.5, 0.08, 0.06, '#7a8796', 0.75, 2.8, 0, g); dbox(1.5, 0.08, 0.06, '#7a8796', 0.75, 0.04, 0, g); dbox(0.06, 2.8, 0.06, '#7a8796', sd < 0 ? 1.47 : 0.03, 1.42, 0, g); const gl = new THREE.Mesh(new THREE.BoxGeometry(1.44, 2.7, 0.02), glassM); gl.position.set(0.75, 1.42, 0); g.add(gl);
-    SLIDE.panels.push({ g, x0, sd });
+    compactGroup(g); SLIDE.panels.push({ g, x0, sd });
   }
   mbox(6.2, 0.18, 0.2, '#7a8796', 13, 2.95, 14.0); sign('◂ ▸', 0.5, 0.16, 13, 2.95, 13.89, Math.PI, { bg: '#2a2135', fg: '#7df3c8', size: 80 });
 }
@@ -133,14 +134,14 @@ function syncOpen(G, dt) {
 }
 // ---------- objets par terre / en vol ----------
 const ITEMM = new Map(); const PRED = []; let ITEM_KNOWN = new Set();
-const CARTON_GEO = new THREE.BoxGeometry(0.46, 0.28, 0.36), CARTON_OL = outlineGeo(CARTON_GEO, 0.012), CRATE_GEO = new THREE.BoxGeometry(0.48, 0.24, 0.36), CRATE_OL = outlineGeo(CRATE_GEO, 0.012);
+const CARTON_GEO = rboxGeo(0.46, 0.28, 0.36, 0.03), CARTON_OL = outlineGeo(CARTON_GEO, 0.012), CRATE_GEO = rboxGeo(0.48, 0.24, 0.36, 0.03), CRATE_OL = outlineGeo(CRATE_GEO, 0.012);
 function itemObj(k, cat, v) {
   const g = new THREE.Group(); g.userData.dyn = true;
   if (k === 1) {
     const cr = cat >= 8; const m = new THREE.Mesh(cr ? CRATE_GEO : CARTON_GEO, mat(cr ? '#3a86ff' : '#d9a066')); m.castShadow = true; g.add(m, new THREE.Mesh(cr ? CRATE_OL : CARTON_OL, OUTLINE_MAT));
     if (!cr) { const b = new THREE.Mesh(BOXG, mat(PALETTES[cat][0])); b.scale.set(0.47, 0.06, 0.37); g.add(b); const t = new THREE.Mesh(BOXG, mat('#c88a50')); t.scale.set(0.05, 0.01, 0.37); t.position.y = 0.145; g.add(t); }
     else for (let i = 0; i < 4; i++) { const b = new THREE.Mesh(BOXG, mat(PALETTES[cat][i % 4])); b.scale.set(0.09, 0.1, 0.12); b.position.set(-0.16 + i * 0.11, 0.1, 0); g.add(b); }
-  } else { const ty = ptypeOf(cat, v); const m = new THREE.Mesh(PGEO[ty], mat(PALETTES[cat][v & 3])); m.castShadow = true; g.add(m, new THREE.Mesh(PGEO_OL[ty], OUTLINE_MAT)); g.userData.cyl = PTYPE[ty][0] === 'c'; }
+  } else { const ty = ptypeOf(cat, v); const m = new THREE.Mesh(PGEO[ty], prodMat(cat, v)); m.castShadow = true; g.add(m, new THREE.Mesh(PGEO_OL[ty], OUTLINE_MAT)); g.userData.cyl = PTYPE[ty][0] === 'c'; }
   scene.add(g); return g;
 }
 function poseItem(o, k, s, ry, spin) {
@@ -157,7 +158,7 @@ function syncItems(G, dt) {
   for (const it of list) {
     const [id, kk, cat, v, x, y, z, ry, s] = it; seen.add(id); let o = ITEMM.get(id);
     if (!o) { o = { obj: itemObj(kk, cat, v), x, y, z, s, spin: 0 }; ITEMM.set(id, o); }
-    if (o.s === 2 && s !== 2) { const d = Math.hypot(x - camera.position.x, z - camera.position.z); if (d < 18) SFX.play('land', clamp(1 - d / 18, 0.2, 1)); }
+    if (o.s === 2 && s !== 2) { const d = Math.hypot(x - camera.position.x, z - camera.position.z); if (d < 18) SFX.play('land', clamp(1 - d / 18, 0.2, 1)); if (d < 30) fxDust(x, Math.max(0.05, y - 0.1), z, 3, 0.55); }
     o.s = s; if (Math.hypot(x - o.x, z - o.z) > 4) { o.x = x; o.y = y; o.z = z; } else { o.x = lerp(o.x, x, k); o.y = lerp(o.y, y, k); o.z = lerp(o.z, z, k); }
     o.spin += s === 2 ? dt * 11 : 0; o.obj.position.set(o.x, o.y, o.z); poseItem(o.obj, kk, s, ry, o.spin);
     o.obj.visible = !(C.hideIt.has(id) && now - C.hideIt.get(id) < 1500);

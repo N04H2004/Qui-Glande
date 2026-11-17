@@ -376,6 +376,7 @@ function movePlayer(dt, ghost) {
 // ---------- événements ----------
 function handleEvent(e, G) {
   const [, type, a, b, c] = e; const N = (id) => (id === NET.me ? 'Toi' : pName(G, id));
+  fxEvent(e, G); // effets visuels locaux (particules, tampon) : aucune incidence sur la partie
   if (type === 'fi') {
     SFX.play('fire');
     UI.toast(`📦 ${esc(N(a))} ${a === NET.me ? 'as été viré' : 'a été viré'}${c === 'meet' ? ' en réunion' : ''} ! C'était ${b === 'gla' ? 'un <b>GLANDEUR 😴</b>' : 'un <b>EMPLOYÉ 😇</b>'}`, 'fire', 6000);

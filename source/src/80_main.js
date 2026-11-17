@@ -1,13 +1,14 @@
 // ======================= DÉMARRAGE & BOUCLE =======================
-DBG.lowgfx = () => { renderer.setPixelRatio(0.4); renderer.shadowMap.enabled = false; scene.traverse((o) => { if (o.material) o.material.needsUpdate = true; }); };
+DBG.lowgfx = () => setGfx('low');
 window.__qgCloseMg = () => MG.close(null);
-Object.assign(DBG, { get NETR() { return NET.room; }, itemStep, hostUpdate, storeNeeds, OPEN, MG, VM, SHELVES, PEND,  C, H, ME, NET, KEYS, UI, AV, ST, WORLD, TUNE, curG, navPath, hostStart, hostAddBot, hostMeeting, hostFire, doSolo, sendAction, get camera() { return camera; } });
+Object.assign(DBG, { get NETR() { return NET.room; }, itemStep, hostUpdate, storeNeeds, OPEN, MG, VM, SHELVES, PEND,  C, H, ME, NET, KEYS, UI, AV, ST, WORLD, TUNE, curG, navPath, hostStart, hostAddBot, hostMeeting, hostFire, doSolo, sendAction, GFX, FX, POST, REFL, LIGHTS, setGfx, gfxAdapt });
+for (const [k, f] of [['camera', () => camera], ['scene', () => scene], ['renderer', () => renderer]]) Object.defineProperty(DBG, k, { get: f });
 let lastT = performance.now();
 function frame(dt) { clientFrame(dt); UI.update(dt); }
 function loop(t) {
   requestAnimationFrame(loop);
   const dt = Math.min(0.25, Math.max(0, (t - lastT) / 1000)); lastT = t;
-  try { frame(dt); renderer.clear(); renderer.render(scene, camera); if (C.vmOn) { renderer.clearDepth(); renderer.render(VM.scene, VM.cam); } } catch (e) { console.error(e); }
+  try { frame(dt); fxUpdate(dt); fxApplyShake(); lightTick(); renderFrame(); gfxAdapt(dt); } catch (e) { console.error(e); }
 }
 // onglet en arrière-plan : la logique continue (sinon l'hôte gèlerait la partie)
 setInterval(() => {
@@ -18,7 +19,7 @@ setInterval(() => {
 async function boot() {
   try {
     try { await Promise.race([document.fonts.load('700 40px Fredoka'), sleep(2500)]); await Promise.race([document.fonts.ready, sleep(1500)]); } catch (e) {}
-    buildNav(); initRenderer(); renderer.autoClear = false; buildWorld(); DBG.merged = mergeStatic(); initVM(); UI.init(); setupInput(); await CRY.init();
+    buildNav(); initRenderer(); renderer.autoClear = false; buildWorld(); DBG.merged = mergeStatic(); initVM(); initFX(); initPost(); applyGfx(); UI.init(); setupInput(); await CRY.init();
     $('#loading').remove(); UI.showTitle();
     netInit().then(() => UI.netStatus());
     requestAnimationFrame(loop);

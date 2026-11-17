@@ -1,18 +1,24 @@
 // ======================= PERSONNAGES (chibi low-poly, contours cartoon) =======================
 const CG = {
-  head: new THREE.IcosahedronGeometry(1, 1), ico0: new THREE.IcosahedronGeometry(1, 0), ico1: new THREE.IcosahedronGeometry(1, 1),
-  body: new THREE.CylinderGeometry(0.26, 0.33, 0.62, 7), cyl6: new THREE.CylinderGeometry(1, 1, 1, 6), cyl8: new THREE.CylinderGeometry(1, 1, 1, 8),
-  arm: new THREE.CylinderGeometry(0.07, 0.085, 0.36, 6), leg: new THREE.CylinderGeometry(0.095, 0.105, 0.38, 6), box: new THREE.BoxGeometry(1, 1, 1),
-  hemi: new THREE.SphereGeometry(1, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2), cone: new THREE.ConeGeometry(1, 1, 5), bob: new THREE.CylinderGeometry(0.3, 0.36, 0.22, 8),
+  head: new THREE.IcosahedronGeometry(1, 2), ico0: new THREE.IcosahedronGeometry(1, 0), ico1: new THREE.IcosahedronGeometry(1, 1),
+  body: new THREE.CylinderGeometry(0.26, 0.33, 0.62, 10), cyl6: new THREE.CylinderGeometry(1, 1, 1, 6), cyl8: new THREE.CylinderGeometry(1, 1, 1, 10),
+  arm: new THREE.CylinderGeometry(0.07, 0.085, 0.36, 8), leg: new THREE.CylinderGeometry(0.095, 0.105, 0.38, 8), box: new THREE.BoxGeometry(1, 1, 1),
+  hemi: new THREE.SphereGeometry(1, 12, 5, 0, Math.PI * 2, 0, Math.PI / 2), cone: new THREE.ConeGeometry(1, 1, 5), bob: new THREE.CylinderGeometry(0.3, 0.36, 0.22, 10),
   arc: new THREE.TorusGeometry(0.38, 0.035, 5, 10, Math.PI), ring: new THREE.TorusGeometry(1, 0.18, 4, 10),
 };
 const _m4 = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _p = new THREE.Vector3(), _s = new THREE.Vector3(), _c = new THREE.Color();
+// assemble des morceaux colorés en une géométrie ; les boîtes ont les arêtes adoucies et les volumes ronds sont lissés
 function compose(list) {
   let n = 0;
-  const parts = list.map(([geo, color, x = 0, y = 0, z = 0, sx = 1, sy = 1, sz = 1, rx = 0, ry = 0, rz = 0]) => { const g = geo.index ? geo.toNonIndexed() : geo.clone(); _m4.compose(_p.set(x, y, z), _q.setFromEuler(_e.set(rx, ry, rz)), _s.set(sx, sy, sz)); g.applyMatrix4(_m4); n += g.attributes.position.count; return [g, color]; });
+  const parts = list.map(([geo, color, x = 0, y = 0, z = 0, sx = 1, sy = 1, sz = 1, rx = 0, ry = 0, rz = 0]) => {
+    let g;
+    if (geo === CG.box) { g = rboxGeo(sx, sy, sz, Math.min(Math.abs(sx), Math.abs(sy), Math.abs(sz)) * 0.3).toNonIndexed(); _m4.compose(_p.set(x, y, z), _q.setFromEuler(_e.set(rx, ry, rz)), _s.set(1, 1, 1)); }
+    else { g = geo.index ? geo.toNonIndexed() : geo.clone(); _m4.compose(_p.set(x, y, z), _q.setFromEuler(_e.set(rx, ry, rz)), _s.set(sx, sy, sz)); }
+    g.applyMatrix4(_m4); n += g.attributes.position.count; return [g, color];
+  });
   const pos = new Float32Array(n * 3), col = new Float32Array(n * 3); let o = 0;
   for (const [g, color] of parts) { const P = g.attributes.position; pos.set(P.array, o * 3); _c.set(color); for (let i = 0; i < P.count; i++) { col[(o + i) * 3] = _c.r; col[(o + i) * 3 + 1] = _c.g; col[(o + i) * 3 + 2] = _c.b; } o += P.count; g.dispose(); }
-  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.BufferAttribute(col, 3)); geo.computeVertexNormals(); geo.computeBoundingSphere(); return geo;
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.BufferAttribute(col, 3)); creaseGeo(geo, 58); geo.computeBoundingSphere(); return geo;
 }
 const CHAR_CACHE = new Map();
 function charGeos(sk, cust) {
@@ -20,7 +26,8 @@ function charGeos(sk, cust) {
   const shirt = SHIRTS[sk[0] % SHIRTS.length], skin = SKINS[sk[1] % SKINS.length], hair = HAIRS[sk[1] % HAIRS.length], hat = sk[2] % HATS.length, acc = sk[3] % ACCS.length;
   const pants = cust ? pick(['#3d5a80', '#5b4a3a', '#2b2d42', '#6d597a']) : '#2c3550', dark = '#2a2135', white = '#ffffff';
   // tête
-  const headMain = [[CG.head, skin, 0, 0, 0, 0.36, 0.34, 0.34], [CG.hemi, hair, 0, 0.06, -0.03, 0.375, 0.3, 0.37]];
+  const headMain = [[CG.head, skin, 0, 0, 0, 0.36, 0.34, 0.34], [CG.hemi, hair, 0, 0.06, -0.03, 0.375, 0.3, 0.37], [CG.hemi, hair, 0, -0.01, -0.035, 0.368, 0.335, 0.31, -Math.PI / 2]]; // calotte + arrière du crâne (de dos, on voit des cheveux et non un visage vide)
+  if (cust) { const hs = (sk[0] + sk[1] * 2 + sk[2]) % 3; if (hs === 1) headMain.push([CG.ico1, hair, 0, 0.3, -0.2, 0.15, 0.15, 0.15]); else if (hs === 2) headMain.push([CG.cyl8, hair, 0, -0.22, -0.2, 0.26, 0.34, 0.14]); } // clients : chignon ou cheveux longs
   if (hat === 1) headMain.push([CG.hemi, '#e63946', 0, 0.13, 0, 0.375, 0.24, 0.375], [CG.box, '#e63946', 0, 0.14, 0.36, 0.34, 0.035, 0.26]);
   else if (hat === 2) headMain.push([CG.hemi, '#2d7dd2', 0, 0.06, 0, 0.385, 0.36, 0.385], [CG.cyl8, '#ffffff', 0, 0.08, 0, 0.39, 0.1, 0.39], [CG.ico0, '#ffffff', 0, 0.47, 0, 0.1, 0.1, 0.1]);
   else if (hat === 3) headMain.push([CG.cyl8, '#e8c872', 0, 0.22, 0, 0.6, 0.04, 0.6], [CG.cyl8, '#e8c872', 0, 0.34, 0, 0.3, 0.22, 0.3], [CG.cyl8, '#d62828', 0, 0.27, 0, 0.305, 0.06, 0.305]);
@@ -46,28 +53,37 @@ function charGeos(sk, cust) {
   const res = { head: compose([...headMain, ...face]), headOl: outlineGeo(compose(headMain), 0.022), torso: compose(torso), torsoOl: outlineGeo(compose([[CG.body, shirt, 0, 0.82, 0]]), 0.022), arm: compose(arm), armB: compose(armB), armOl: outlineGeo(compose([[CG.arm, shirt, 0, -0.18, 0]]), 0.018), leg: compose(leg), legOl: outlineGeo(compose([[CG.leg, pants, 0, -0.19, 0]]), 0.018) };
   CHAR_CACHE.set(key, res); return res;
 }
+// ombre de contact : disque doux sous chaque personnage (ancre les pieds au sol, quel que soit le niveau de graphismes)
+let BLOB_MAT = null; const BLOB_GEO = new THREE.CircleGeometry(0.46, 18), LID_GEO = new THREE.IcosahedronGeometry(1, 1);
+function blobMat() { if (!BLOB_MAT) BLOB_MAT = new THREE.MeshBasicMaterial({ map: canvasTex(64, 64, (x) => { const g = x.createRadialGradient(32, 32, 2, 32, 32, 32); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.55, 'rgba(255,255,255,.55)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); }), color: '#22152a', transparent: true, opacity: 0.42, depthWrite: false }); return BLOB_MAT; }
 function makeChar(sk, name, opts = {}) {
-  const ch = { sk: null, name: null, mgr: null, ghost: false, cust: !!opts.cust, t: Math.random() * 10, root: new THREE.Group(), rig: new THREE.Group(), mats: [] };
-  ch.mat = new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: gradTex }); ch.olMat = new THREE.MeshBasicMaterial({ color: '#2a2135', side: THREE.BackSide }); ch.mats.push(ch.mat, ch.olMat);
+  const ch = { sk: null, name: null, mgr: null, ghost: false, cust: !!opts.cust, t: Math.random() * 10, root: new THREE.Group(), rig: new THREE.Group(), mats: [], ols: [], spd: 0, hitT: 0, blinkT: rnd(1, 4), lookT: rnd(0.5, 3), lookY: 0, lookX: 0, zT: 0, olOn: true, out: false, A: { la: 0, ra: 0, ll: 0, rl: 0, lz: 0, rz: 0, hx: 0, hy: 0, hz: 0, ty: 0, by: 0, lean: 0, roll: 0, flat: 0, sq: 0 } };
+  ch.mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.74, metalness: 0 }); ch.olMat = new THREE.MeshBasicMaterial({ color: '#2a2135', side: THREE.BackSide }); ch.mats.push(ch.mat, ch.olMat);
   ch.root.add(ch.rig);
   ch.legL = new THREE.Group(); ch.legL.position.set(-0.12, 0.5, 0); ch.legR = new THREE.Group(); ch.legR.position.set(0.12, 0.5, 0);
   ch.armL = new THREE.Group(); ch.armL.position.set(-0.33, 1.05, 0); ch.armR = new THREE.Group(); ch.armR.position.set(0.33, 1.05, 0);
   ch.head = new THREE.Group(); ch.head.position.y = 1.5; ch.torsoG = new THREE.Group();
   ch.rig.add(ch.legL, ch.legR, ch.armL, ch.armR, ch.head, ch.torsoG);
+  // paupières (clignement, sieste) et bouche en « o » (surprise)
+  ch.lids = [-1, 1].map((s) => { const l = new THREE.Mesh(LID_GEO, mat(SKINS[0], { kind: 'matte' })); l.scale.set(0.097, 0.112, 0.062); l.position.set(0.13 * s, 0.022, 0.31); l.visible = false; ch.head.add(l); return l; });
+  ch.mouthO = new THREE.Mesh(LID_GEO, mat('#2a2135')); ch.mouthO.scale.set(0.05, 0.06, 0.03); ch.mouthO.position.set(0, -0.15, 0.325); ch.mouthO.visible = false; ch.head.add(ch.mouthO);
+  ch.blob = new THREE.Mesh(BLOB_GEO, blobMat()); ch.blob.rotation.x = -Math.PI / 2; ch.blob.position.y = 0.022; ch.blob.renderOrder = 1; ch.root.add(ch.blob);
   // directeur
   ch.tie = new THREE.Group(); ch.rig.add(ch.tie); const mRed = mat('#d62828'); mbox(0.09, 0.34, 0.03, null, 0, 0.82, 0.33, { parent: ch.tie, mat: mRed, ol: false }); mbox(0.12, 0.08, 0.04, null, 0, 1.0, 0.32, { parent: ch.tie, mat: mRed, ol: false });
   ch.clip = new THREE.Group(); ch.armL.add(ch.clip); mbox(0.24, 0.32, 0.02, '#8b5a2b', 0, -0.5, 0.12, { parent: ch.clip, ol: false }); mbox(0.2, 0.26, 0.01, '#ffffff', 0, -0.5, 0.135, { parent: ch.clip, ol: false });
-  // objets portés
+  // objets portés (attachés au buste : ils suivent le balancement de la marche)
   ch.carryObj = {};
-  const cb = (w, h, d, color, x, y, z, parent) => { const g = new THREE.BoxGeometry(w, h, d); const m = new THREE.Mesh(g, mat(color)); m.position.set(x, y, z); m.castShadow = true; parent.add(m); const o = new THREE.Mesh(outlineGeo(g, 0.018), ch.olMat); o.position.copy(m.position); parent.add(o); return m; };
+  const cb = (w, h, d, color, x, y, z, parent) => { const g = rboxGeo(w, h, d, Math.min(w, h, d) * 0.2); const m = new THREE.Mesh(g, mat(color)); m.position.set(x, y, z); m.castShadow = true; parent.add(m); const o = new THREE.Mesh(outlineGeo(g, 0.018), ch.olMat); o.position.copy(m.position); parent.add(o); return m; };
   const g1 = new THREE.Group(); cb(0.5, 0.38, 0.42, '#d9a066', 0, 0.92, 0.5, g1); cb(0.5, 0.02, 0.07, '#a87a45', 0, 1.115, 0.5, g1); ch.carryObj[1] = g1;
   const g2 = new THREE.Group(); cb(0.52, 0.28, 0.4, '#3a86ff', 0, 0.88, 0.5, g2); for (let i = 0; i < 4; i++) cb(0.08, 0.18, 0.08, '#ffffff', -0.18 + i * 0.12, 1.08, 0.5, g2); ch.carryObj[2] = g2;
   const g3 = new THREE.Group(); cartModel(0, 0, 0.95, 0, g3); ch.carryObj[3] = g3;
   const g4 = new THREE.Group(); const bag = new THREE.Mesh(SPHG, mat('#2a2a30')); bag.scale.set(0.28, 0.34, 0.26); bag.position.set(0.32, 0.55, 0.15); g4.add(bag); cb(0.06, 0.1, 0.06, '#ffd23f', 0.32, 0.9, 0.15, g4); ch.carryObj[4] = g4;
   const g5 = new THREE.Group(); cb(0.55, 0.75, 0.03, '#ffd23f', 0, 1.0, 0.45, g5); cb(0.45, 0.2, 0.035, '#ff5a5f', 0, 1.15, 0.45, g5); ch.carryObj[5] = g5;
   const g6 = new THREE.Group(); cb(0.2, 0.28, 0.16, '#ff8a3d', 0.12, 1.02, 0.42, g6); cb(0.21, 0.08, 0.17, '#ffd23f', 0.12, 1.05, 0.42, g6); ch.carryObj[6] = g6;
-  for (const k in ch.carryObj) { ch.carryObj[k].visible = false; ch.root.add(ch.carryObj[k]); }
+  compactGroup(ch.tie); compactGroup(ch.clip);
+  for (const k in ch.carryObj) { compactGroup(ch.carryObj[k]); if (k === '3') compactGroup(ch.carryObj[k].children[0]); ch.carryObj[k].visible = false; (k === '3' ? ch.root : ch.rig).add(ch.carryObj[k]); }
   ch.carry = 0; ch.labelY = 2.12; ch.label = null; ch.bubble = null; ch.bubbleT = 0; ch.zzz = null; ch.icon = null; ch.iconKey = '';
+  if (ch.cust) { const h = 0.92 + ((sk[0] * 7 + sk[1] * 3 + sk[2]) % 5) * 0.036, w = 0.94 + ((sk[0] + sk[3] * 2) % 4) * 0.045; ch.root.scale.set(w, h, w); } // clients : tailles et carrures variées
   scene.add(ch.root);
   setCharSkin(ch, sk); if (name) setCharName(ch, name, false);
   return ch;
@@ -76,8 +92,11 @@ function setCharSkin(ch, sk) {
   sk = sk || [0, 0, 0, 0]; const key = sk.join(','); if (ch.skKey === key) return; ch.skKey = key; ch.sk = sk;
   const G = charGeos(sk, ch.cust);
   for (const g of [ch.head, ch.torsoG, ch.armL, ch.armR, ch.legL, ch.legR]) for (const c of [...g.children]) if (c.userData.part) g.remove(c);
-  const add = (grp, geo, ol) => { const m = new THREE.Mesh(geo, ch.mat); m.castShadow = true; m.userData.part = 1; grp.add(m); if (ol) { const o = new THREE.Mesh(ol, ch.olMat); o.userData.part = 1; o.userData.ol = 1; grp.add(o); } };
+  ch.ols = [];
+  const add = (grp, geo, ol) => { const m = new THREE.Mesh(geo, ch.mat); m.castShadow = true; m.userData.part = 1; grp.add(m); if (ol) { const o = new THREE.Mesh(ol, ch.olMat); o.userData.part = 1; o.userData.ol = 1; o.visible = ch.olOn; grp.add(o); ch.ols.push(o); } };
   add(ch.head, G.head, G.headOl); add(ch.torsoG, G.torso, G.torsoOl); add(ch.armL, G.armB, G.armOl); add(ch.armR, G.arm, G.armOl); add(ch.legL, G.leg, G.legOl); add(ch.legR, G.leg, G.legOl);
+  const lm = mat(SKINS[sk[1] % SKINS.length], { kind: 'matte' }); for (const l of ch.lids) l.material = lm;
+  ch.canBlink = sk[3] % ACCS.length !== 1 && sk[3] % ACCS.length !== 5; // pas de paupières par-dessus des lunettes
 }
 function setCharName(ch, name, mgr) {
   if (ch.name === name && ch.mgr === mgr) return; ch.name = name; ch.mgr = mgr;
@@ -87,8 +106,8 @@ function setCharName(ch, name, mgr) {
 }
 function setCharGhost(ch, on) {
   if (ch.ghost === on) return; ch.ghost = on;
-  ch.mat.transparent = on; ch.mat.opacity = on ? 0.32 : 1; ch.mat.depthWrite = !on; ch.mat.needsUpdate = true; ch.olMat.visible = !on;
-  ch.root.traverse((o) => { if (o.isMesh) o.castShadow = !on; });
+  ch.mat.transparent = on; if (!on) ch.mat.opacity = 1; ch.mat.depthWrite = !on; ch.mat.needsUpdate = true; ch.olMat.visible = !on; ch.blob.visible = !on; // l'opacité descend en fondu dans animChar
+  ch.root.traverse((o) => { if (o.isMesh) o.castShadow = !on && o !== ch.blob; });
 }
 function setCharCarry(ch, c) { if (ch.carry === c) return; ch.carry = c; for (const k in ch.carryObj) ch.carryObj[k].visible = +k === c; }
 function charBubble(ch, text, opts) {
@@ -101,26 +120,63 @@ function setCharIcon(ch, icon) {
   if (ch.icon) { ch.root.remove(ch.icon); ch.icon.material.map.dispose(); ch.icon = null; }
   if (icon) { ch.icon = labelSprite(icon, { bg: 'rgba(255,255,255,.95)', fg: '#2a2135', size: 44 }); ch.icon.position.y = 2.3; ch.root.add(ch.icon); }
 }
+// anim : 0 repos · 1 marche · 2 travail · 3 assis · 4 sieste · 5 arcade · 6 viré (abattu)
 function animChar(ch, anim, dt, dist) {
-  ch.t += dt * (anim === 1 ? 10 : 4); const t = ch.t; const rig = ch.rig;
-  rig.rotation.set(0, 0, 0); rig.position.set(0, 0, 0); rig.scale.set(1, 1, 1);
-  let la = 0, ra = 0, ll = 0, rl = 0, hr = 0, lz = 0, rz = 0;
-  if (anim === 1) { const s = Math.sin(t) * 0.8; ll = s; rl = -s; la = -s * 0.9; ra = s * 0.9; rig.position.y = Math.abs(Math.cos(t)) * 0.08; rig.rotation.z = Math.sin(t) * 0.04; }
-  else if (anim === 2) { la = -1.3 + Math.sin(t * 2.6) * 0.4; ra = -1.3 + Math.cos(t * 2.6) * 0.4; hr = 0.3; rig.position.y = Math.abs(Math.sin(t * 2.6)) * 0.03; }
-  else if (anim === 3) { ll = rl = -1.45; la = ra = -0.55; rig.position.y = -0.08; }
-  else if (anim === 4) { rig.rotation.x = Math.PI / 2; rig.position.set(0, 0.78, 0.25); la = ra = -2.8; }
-  else if (anim === 5) { la = ra = -2.6 + Math.sin(t * 3) * 0.3; lz = 0.3; rz = -0.3; rig.position.y = Math.abs(Math.sin(t * 3)) * 0.12; }
-  else { rig.scale.y = 1 + Math.sin(t * 0.8) * 0.015; la = Math.sin(t * 0.8) * 0.06; ra = -la; }
-  if (ch.carry && anim !== 4) { la = ra = -1.3; lz = rz = 0; }
-  ch.legL.rotation.x = ll; ch.legR.rotation.x = rl; ch.armL.rotation.set(la, 0, lz); ch.armR.rotation.set(ra, 0, rz); ch.head.rotation.x = hr;
+  const A = ch.A, rig = ch.rig, px = ch.root.position.x, pz = ch.root.position.z;
+  // vitesse réelle : la cadence des pas et l'inclinaison du corps en dépendent
+  let spd = 0; if (ch.px !== undefined && dt > 1e-4) spd = Math.min(9, Math.hypot(px - ch.px, pz - ch.pz) / dt); ch.px = px; ch.pz = pz; ch.spd += (spd - ch.spd) * Math.min(1, dt * 8);
+  const walk = anim === 1; ch.t += dt * (walk ? 5.3 + Math.min(ch.spd, 7) * 1.02 : 4); const t = ch.t;
+  let la = 0, ra = 0, ll = 0, rl = 0, lz = 0, rz = 0, hx = 0, hy = 0, hz = 0, ty = 0, by = 0, lean = 0, roll = 0, flat = 0, sy = 1;
+  ch.lookT -= dt; if (ch.lookT <= 0) { ch.lookT = rnd(1.4, 4.5); ch.lookY = Math.random() < 0.65 ? rnd(-0.6, 0.6) : 0; ch.lookX = rnd(-0.1, 0.12); }
+  if (walk) { const s = Math.sin(t), run = clamp((ch.spd - 4.8) / 2, 0, 1); ll = s * (0.8 + run * 0.2); rl = -ll; la = -s * (0.7 + run * 0.35); ra = -la; by = Math.abs(Math.cos(t)) * (0.07 + run * 0.03); roll = s * 0.045; ty = s * 0.14; hy = -s * 0.07; lean = 0.05 + Math.min(ch.spd, 7) * 0.022; hx = -lean * 0.6; }
+  else if (anim === 2) { la = -1.3 + Math.sin(t * 2.6) * 0.4; ra = -1.3 + Math.cos(t * 2.6) * 0.4; hx = 0.3; by = Math.abs(Math.sin(t * 2.6)) * 0.03; lean = 0.1; ty = Math.sin(t * 1.3) * 0.08; }
+  else if (anim === 3) { ll = rl = -1.45; la = ra = -0.55; by = -0.08; hy = ch.lookY * 0.8; hx = ch.lookX; sy = 1 + Math.sin(t * 0.8) * 0.012; }
+  else if (anim === 4) { flat = 1; la = ra = -2.7; lz = 0.45; rz = -0.45; ll = -0.12; rl = -0.95; sy = 1 + Math.sin(t * 0.55) * 0.035; hz = 0.12; }
+  else if (anim === 5) { la = ra = -2.6 + Math.sin(t * 3) * 0.3; lz = 0.3; rz = -0.3; by = Math.abs(Math.sin(t * 3)) * 0.12; hx = -0.15 + Math.sin(t * 6) * 0.06; }
+  else if (anim === 6) { hx = 0.5; lean = 0.12; by = -0.03 + Math.sin(t * 0.9) * 0.01; hz = Math.sin(t * 0.7) * 0.05; }
+  else { sy = 1 + Math.sin(t * 0.8) * 0.015; la = Math.sin(t * 0.8) * 0.06; ra = -la; hy = ch.lookY; hx = ch.lookX; ty = ch.lookY * 0.2; }
+  // objets portés : les mains restent sur la charge (qui suit le buste), le bras libre continue de se balancer
+  const c = ch.carry;
+  if (c && anim !== 4) { const step = walk ? Math.abs(Math.sin(t)) * 0.06 : 0; if (c === 4) { ra = -0.1; rz = 0; } else if (c === 6) { ra = -1.3 + step; rz = 0; } else { la = ra = (c === 3 ? -1.1 : -1.28) + step; lz = rz = 0; ty *= 0.3; } }
+  if (ch.hitT > 0) { ch.hitT -= dt; hx = -0.35; la = ra = -2.2; lz = 0.7; rz = -0.7; }
+  const k = 1 - Math.exp(-dt * 18), T = { la, ra, ll, rl, lz, rz, hx, hy, hz, ty, by, lean, roll, flat }; for (const n in T) A[n] += (T[n] - A[n]) * k;
+  A.sq += ((ch.hitT > 0 ? 1 : 0) - A.sq) * (1 - Math.exp(-dt * 22));
+  rig.rotation.set(A.lean + A.flat * Math.PI / 2, A.flat * Math.PI, A.roll); rig.position.set(0, A.by + A.flat * 0.78, A.flat * 0.25); rig.scale.set(1 + A.sq * 0.16, 1 - A.sq * 0.2, 1 + A.sq * 0.16);
+  ch.legL.rotation.x = A.ll; ch.legR.rotation.x = A.rl; ch.armL.rotation.set(A.la, 0, A.lz); ch.armR.rotation.set(A.ra, 0, A.rz); ch.head.rotation.set(A.hx, A.hy, A.hz); ch.torsoG.rotation.y = A.ty; ch.torsoG.scale.y = sy;
+  if (c && ch.carryObj[c] && c !== 3) ch.carryObj[c].rotation.z = walk ? Math.sin(t) * 0.035 : 0;
+  // visage : clignement, yeux fermés pendant la sieste, yeux ronds + bouche en « o » quand on se prend un produit
+  ch.blinkT -= dt; if (ch.blinkT < -0.11) ch.blinkT = rnd(1.8, 5);
+  const lids = ch.canBlink && !ch.ghost && ch.hitT <= 0 && (anim === 4 || ch.blinkT < 0); if (ch.lids[0].visible !== lids) ch.lids[0].visible = ch.lids[1].visible = lids;
+  const mo = ch.hitT > 0 && !ch.ghost; if (ch.mouthO.visible !== mo) ch.mouthO.visible = mo;
+  if (anim === 4) { ch.zT -= dt; if (ch.zT <= 0 && (dist === undefined || dist < 30)) { ch.zT = 0.75; ch.head.getWorldPosition(_p); fxZ(_p.x, _p.y + 0.35, _p.z); } }
   if (anim === 4 && !ch.zzz) { ch.zzz = labelSprite('💤 Zzz…', { bg: 'rgba(120,170,255,.9)' }); ch.zzz.position.y = 1.6; ch.root.add(ch.zzz); }
   if (anim !== 4 && ch.zzz) { ch.root.remove(ch.zzz); ch.zzz.material.map.dispose(); ch.zzz = null; }
   if (ch.bubble) { ch.bubbleT -= dt; if (ch.bubbleT <= 0) { ch.root.remove(ch.bubble); ch.bubble.material.map.dispose(); ch.bubble = null; } }
   if (ch.label) ch.label.visible = dist === undefined || dist < 26;
   if (ch.icon) ch.icon.position.y = 2.3 + Math.sin(t * 1.5) * 0.06;
+  // fondu vers le mode fantôme, contours masqués au loin, reflets du ciel quand on sort du magasin
+  if (ch.ghost && ch.mat.opacity > 0.32) ch.mat.opacity = Math.max(0.32, ch.mat.opacity - dt * 1.3);
+  const olOn = dist === undefined || dist < GFX.q.olDist; if (olOn !== ch.olOn) { ch.olOn = olOn; for (const o of ch.ols) o.visible = olOn; }
+  const out = !insideStore(px, pz); if (out !== ch.out) { ch.out = out; ch.mat.envMap = out ? ENV.out : null; }
 }
 function disposeChar(ch) {
   scene.remove(ch.root);
   ch.root.traverse((o) => { if (o.isSprite) { o.material.map?.dispose(); o.material.dispose(); } });
   for (const m of ch.mats) m.dispose();
+}
+// portrait : la tête du personnage rendue une fois en 3D dans une petite image (réunion, salon, écran de fin)
+const PORTRAITS = new Map(); let PT = null;
+function portraitURL(sk) {
+  const key = sk.join(','); let u = PORTRAITS.get(key); if (u) return u;
+  if (!PT) { PT = { sc: new THREE.Scene(), cam: new THREE.PerspectiveCamera(31, 1, 0.1, 10), rt: new THREE.WebGLRenderTarget(160, 160), grp: new THREE.Group(), mat: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.74 }), buf: new Uint8Array(160 * 160 * 4), lut: new Uint8Array(256), cv: document.createElement('canvas') };
+    PT.sc.add(PT.grp, new THREE.HemisphereLight('#ffffff', '#c7b49c', 1.5)); const d = new THREE.DirectionalLight('#fff2e0', 2.4); d.position.set(1.5, 2.5, 3); PT.sc.add(d); PT.cam.position.set(0.5, 1.62, 2.55); PT.cam.lookAt(0, 1.55, 0); PT.cv.width = PT.cv.height = 160;
+    for (let i = 0; i < 256; i++) { const c = i / 255; PT.lut[i] = Math.round(255 * (c <= 0.0031308 ? c * 12.92 : 1.055 * Math.pow(c, 1 / 2.4) - 0.055)); } }
+  const G = charGeos(sk, false); PT.grp.clear();
+  const h = new THREE.Mesh(G.head, PT.mat), ho = new THREE.Mesh(G.headOl, OUTLINE_MAT), tr = new THREE.Mesh(G.torso, PT.mat), to = new THREE.Mesh(G.torsoOl, OUTLINE_MAT); h.position.y = ho.position.y = 1.5; PT.grp.add(h, ho, tr, to);
+  const prevRT = renderer.getRenderTarget(), tm = renderer.toneMapping; renderer.toneMapping = THREE.NoToneMapping; renderer.setRenderTarget(PT.rt); renderer.setClearColor(0x000000, 0); renderer.clear(); renderer.render(PT.sc, PT.cam);
+  renderer.readRenderTargetPixels(PT.rt, 0, 0, 160, 160, PT.buf); renderer.setRenderTarget(prevRT); renderer.toneMapping = tm;
+  const x = PT.cv.getContext('2d'), im = x.createImageData(160, 160);
+  for (let j = 0; j < 160; j++) for (let i = 0; i < 160; i++) { const s = ((159 - j) * 160 + i) * 4, d = (j * 160 + i) * 4, a = PT.buf[s + 3], mx = Math.min(250, Math.max(PT.buf[s], PT.buf[s + 1], PT.buf[s + 2])), k = 255 / (255 - mx); // décompression des hautes lumières, puis sRGB
+    im.data[d] = PT.lut[Math.min(255, Math.round(PT.buf[s] * k))]; im.data[d + 1] = PT.lut[Math.min(255, Math.round(PT.buf[s + 1] * k))]; im.data[d + 2] = PT.lut[Math.min(255, Math.round(PT.buf[s + 2] * k))]; im.data[d + 3] = a; }
+  x.putImageData(im, 0, 0); u = PT.cv.toDataURL('image/png'); PORTRAITS.set(key, u); return u;
 }
