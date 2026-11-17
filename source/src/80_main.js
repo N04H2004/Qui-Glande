@@ -1,7 +1,7 @@
 // ======================= DÉMARRAGE & BOUCLE =======================
 DBG.lowgfx = () => setGfx('low');
 window.__qgCloseMg = () => MG.close(null);
-Object.assign(DBG, { get NETR() { return NET.room; }, itemStep, hostUpdate, storeNeeds, OPEN, MG, VM, SHELVES, PEND,  C, H, ME, NET, KEYS, UI, AV, ST, WORLD, TUNE, curG, navPath, hostStart, hostAddBot, hostMeeting, hostFire, doSolo, sendAction, GFX, FX, POST, REFL, LIGHTS, setGfx, gfxAdapt });
+Object.assign(DBG, { get NETR() { return NET.room; }, itemStep, hostUpdate, storeNeeds, OPEN, MG, VM, SHELVES, PEND,  C, H, ME, NET, KEYS, UI, AV, ST, WORLD, TUNE, curG, navPath, hostStart, hostAddBot, hostMeeting, hostFire, doSolo, sendAction, GFX, FX, POST, REFL, LIGHTS, setGfx, gfxAdapt, makeChar, animChar, setCharCarry, portraitURL });
 for (const [k, f] of [['camera', () => camera], ['scene', () => scene], ['renderer', () => renderer]]) Object.defineProperty(DBG, k, { get: f });
 let lastT = performance.now();
 function frame(dt) { clientFrame(dt); UI.update(dt); }

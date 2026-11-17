@@ -86,7 +86,7 @@ function fxFired(x, z, ry, sk, role) {
   fxStamp(x, 2.85, z, role === 'gla' ? 'GLANDEUR !' : role === 'mgr' ? 'VIRÉ !' : 'EMPLOYÉ…', role === 'gla' ? '#12a06c' : role === 'mgr' ? '#d99a00' : '#e23d4b');
   fxConfetti(x, 1.3, z, 16, ['#ffffff', '#fff6e6', '#ffe9b0'], 0.17); fxDust(x, 0.1, z, 8);
   FX.objs.push({ t: 0, life: 3.4, upd(o, u, dt) {
-    ch.hitT = o.t < 0.3 ? 0.2 : 0; animChar(ch, 6, dt, 0);
+    animChar(ch, u < 0.5 ? 7 : 6, dt, 0); // d'abord la panique, puis l'abattement
     if (u > 0.78) { const f = (1 - u) / 0.22; if (!ch.mat.transparent) { ch.mat.transparent = true; ch.mat.needsUpdate = true; for (const m of ch.ols) m.visible = false; ch.blob.visible = false; } ch.mat.opacity = f; ch.root.scale.set(1 + (1 - f) * 0.15, f * 0.6 + 0.4, 1 + (1 - f) * 0.15); if (fxEvery('fired', 0.07, dt)) fxDust(x, rnd(0.3, 1.4), z, 1, 0.9); }
   }, end() { fxDust(x, 0.9, z, 10, 1.3); disposeChar(ch); } });
 }
