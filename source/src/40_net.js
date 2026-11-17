@@ -29,7 +29,13 @@ const NET = { lobby: null, room: null, avail: false, checked: false, solo: false
 // L'hôte du salon devient le « hub » (identifiant = code du salon) ; les autres s'y connectent et il relaie les présences.
 const STANDALONE = !!window.__QG_STANDALONE;
 const PJ_PREFIX = 'quiglande-v1-';
-const PJ_CFG = { debug: 0, config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }, { urls: 'stun:stun.cloudflare.com:3478' }] } };
+// Serveurs relais (TURN) : indispensables quand les deux joueurs sont sur des réseaux qui bloquent la connexion directe (4G, wifi d'école ou d'entreprise…).
+// Colle ici les identifiants d'un service TURN (ex. compte gratuit Metered « Open Relay »), sous la forme :
+// { urls: ['turn:global.relay.metered.ca:80', 'turn:global.relay.metered.ca:443', 'turns:global.relay.metered.ca:443?transport=tcp'], username: '...', credential: '...' }
+const PJ_TURN = [];
+const PJ_CFG = { debug: 0, config: { iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }, { urls: 'stun:stun.cloudflare.com:3478' }, ...PJ_TURN] } };
+// le serveur de mise en relation peut couper la connexion (veille, réseau qui saute) : sans reconnexion, le salon devient introuvable pour les nouveaux venus
+const pjKeep = (p) => p.on('disconnected', () => { setTimeout(() => { try { if (!p.destroyed && p.disconnected) p.reconnect(); } catch (e) {} }, 800); });
 function makePeerLobby() { return { join: (name, opt) => peerJoin(name, opt), peers: () => [], connected: () => true, onConnection: (cb) => { setTimeout(() => cb(true), 0); return () => {}; } }; }
 function peerJoin(name, opt = {}) {
   return new Promise((resolve, reject) => {
@@ -54,6 +60,7 @@ function peerJoin(name, opt = {}) {
       peers: snapshot,
       connected: () => R.hub || !!(R.hubConn && R.hubConn.open),
       noHub: () => !!R.noHub,
+      failReason: () => R.fail || (R.noHub ? 'nohub' : ''), // 'nohub' : aucun salon avec ce code · 'p2p' : salon trouvé mais connexion directe impossible entre les deux réseaux
       leave: async () => { clearInterval(R.iv); clearTimeout(R.ft); try { R.peer && R.peer.destroy(); } catch (e) {} R.others.clear(); R.snap = null; },
     };
     R.iv = setInterval(() => {
@@ -71,10 +78,14 @@ function peerJoin(name, opt = {}) {
       conn.on('close', gone); conn.on('error', gone);
     }
     function asMember() {
-      const p = new window.Peer(undefined, PJ_CFG); R.peer = p;
+      const p = new window.Peer(undefined, PJ_CFG); R.peer = p; pjKeep(p);
       p.on('open', (id) => {
         R.me = id; R.snap = null; const c = p.connect(hubId, { reliable: true, serialization: 'json' }); R.hubConn = c;
-        c.on('open', () => { R.lastHub = Date.now(); flush(true); });
+        c.on('open', () => { R.lastHub = Date.now(); R.hubOpen = true; R.fail = ''; flush(true); });
+        // le salon existe (le serveur a transmis la demande) mais la liaison directe n'aboutit pas : réseaux incompatibles sans relais TURN
+        const p2pFail = () => { if (!R.hubOpen && !R.noHub) R.fail = 'p2p'; };
+        c.on('error', p2pFail); setTimeout(p2pFail, 14000);
+        try { const watch = () => { const pc = c.peerConnection; if (!pc) return setTimeout(watch, 300); pc.addEventListener('iceconnectionstatechange', () => { if (pc.iceConnectionState === 'failed') p2pFail(); }); }; watch(); } catch (e) {}
         c.on('data', (m) => { R.lastHub = Date.now(); if (!m || typeof m !== 'object') return; if (m.t === 'all' && Array.isArray(m.list)) { for (const [id, pr] of m.list) if (id !== R.me) setOther(id, pr); } else if (m.t === 'p') { if (m.id !== R.me) setOther(m.id, m.p); } else if (m.t === 'x') dropOther(m.id); });
         c.on('close', () => { R.others.clear(); R.snap = null; });
         if (!R.done) { R.done = true; resolve(api); }
@@ -82,7 +93,7 @@ function peerJoin(name, opt = {}) {
       p.on('error', (e) => { if (e?.type === 'peer-unavailable') { R.noHub = true; return; } if (!R.done) { R.done = true; reject({ code: 'peer_' + (e?.type || 'error'), message: String(e?.message || e) }); } });
     }
     if (!opt.create) { asMember(); return; }
-    const p = new window.Peer(hubId, PJ_CFG); R.peer = p;
+    const p = new window.Peer(hubId, PJ_CFG); R.peer = p; pjKeep(p);
     p.on('open', (id) => { R.me = id; R.hub = true; R.snap = null; p.on('connection', hubHandle); if (!R.done) { R.done = true; resolve(api); } });
     p.on('error', (e) => {
       if (e?.type === 'unavailable-id' && !R.me) { try { p.destroy(); } catch (er) {} }

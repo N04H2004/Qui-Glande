@@ -2214,7 +2214,13 @@ const NET = { lobby: null, room: null, avail: false, checked: false, solo: false
 // L'hôte du salon devient le « hub » (identifiant = code du salon) ; les autres s'y connectent et il relaie les présences.
 const STANDALONE = !!window.__QG_STANDALONE;
 const PJ_PREFIX = 'quiglande-v1-';
-const PJ_CFG = { debug: 0, config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }, { urls: 'stun:stun.cloudflare.com:3478' }] } };
+// Serveurs relais (TURN) : indispensables quand les deux joueurs sont sur des réseaux qui bloquent la connexion directe (4G, wifi d'école ou d'entreprise…).
+// Colle ici les identifiants d'un service TURN (ex. compte gratuit Metered « Open Relay »), sous la forme :
+// { urls: ['turn:global.relay.metered.ca:80', 'turn:global.relay.metered.ca:443', 'turns:global.relay.metered.ca:443?transport=tcp'], username: '...', credential: '...' }
+const PJ_TURN = [];
+const PJ_CFG = { debug: 0, config: { iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }, { urls: 'stun:stun.cloudflare.com:3478' }, ...PJ_TURN] } };
+// le serveur de mise en relation peut couper la connexion (veille, réseau qui saute) : sans reconnexion, le salon devient introuvable pour les nouveaux venus
+const pjKeep = (p) => p.on('disconnected', () => { setTimeout(() => { try { if (!p.destroyed && p.disconnected) p.reconnect(); } catch (e) {} }, 800); });
 function makePeerLobby() { return { join: (name, opt) => peerJoin(name, opt), peers: () => [], connected: () => true, onConnection: (cb) => { setTimeout(() => cb(true), 0); return () => {}; } }; }
 function peerJoin(name, opt = {}) {
   return new Promise((resolve, reject) => {
@@ -2239,6 +2245,7 @@ function peerJoin(name, opt = {}) {
       peers: snapshot,
       connected: () => R.hub || !!(R.hubConn && R.hubConn.open),
       noHub: () => !!R.noHub,
+      failReason: () => R.fail || (R.noHub ? 'nohub' : ''), // 'nohub' : aucun salon avec ce code · 'p2p' : salon trouvé mais connexion directe impossible entre les deux réseaux
       leave: async () => { clearInterval(R.iv); clearTimeout(R.ft); try { R.peer && R.peer.destroy(); } catch (e) {} R.others.clear(); R.snap = null; },
     };
     R.iv = setInterval(() => {
@@ -2256,10 +2263,14 @@ function peerJoin(name, opt = {}) {
       conn.on('close', gone); conn.on('error', gone);
     }
     function asMember() {
-      const p = new window.Peer(undefined, PJ_CFG); R.peer = p;
+      const p = new window.Peer(undefined, PJ_CFG); R.peer = p; pjKeep(p);
       p.on('open', (id) => {
         R.me = id; R.snap = null; const c = p.connect(hubId, { reliable: true, serialization: 'json' }); R.hubConn = c;
-        c.on('open', () => { R.lastHub = Date.now(); flush(true); });
+        c.on('open', () => { R.lastHub = Date.now(); R.hubOpen = true; R.fail = ''; flush(true); });
+        // le salon existe (le serveur a transmis la demande) mais la liaison directe n'aboutit pas : réseaux incompatibles sans relais TURN
+        const p2pFail = () => { if (!R.hubOpen && !R.noHub) R.fail = 'p2p'; };
+        c.on('error', p2pFail); setTimeout(p2pFail, 14000);
+        try { const watch = () => { const pc = c.peerConnection; if (!pc) return setTimeout(watch, 300); pc.addEventListener('iceconnectionstatechange', () => { if (pc.iceConnectionState === 'failed') p2pFail(); }); }; watch(); } catch (e) {}
         c.on('data', (m) => { R.lastHub = Date.now(); if (!m || typeof m !== 'object') return; if (m.t === 'all' && Array.isArray(m.list)) { for (const [id, pr] of m.list) if (id !== R.me) setOther(id, pr); } else if (m.t === 'p') { if (m.id !== R.me) setOther(m.id, m.p); } else if (m.t === 'x') dropOther(m.id); });
         c.on('close', () => { R.others.clear(); R.snap = null; });
         if (!R.done) { R.done = true; resolve(api); }
@@ -2267,7 +2278,7 @@ function peerJoin(name, opt = {}) {
       p.on('error', (e) => { if (e?.type === 'peer-unavailable') { R.noHub = true; return; } if (!R.done) { R.done = true; reject({ code: 'peer_' + (e?.type || 'error'), message: String(e?.message || e) }); } });
     }
     if (!opt.create) { asMember(); return; }
-    const p = new window.Peer(hubId, PJ_CFG); R.peer = p;
+    const p = new window.Peer(hubId, PJ_CFG); R.peer = p; pjKeep(p);
     p.on('open', (id) => { R.me = id; R.hub = true; R.snap = null; p.on('connection', hubHandle); if (!R.done) { R.done = true; resolve(api); } });
     p.on('error', (e) => {
       if (e?.type === 'unavailable-id' && !R.me) { try { p.destroy(); } catch (er) {} }
@@ -2862,8 +2873,8 @@ function clientFrame(dt) {
       if (!C.hostPeerObj) {
         C.noHostT += dt; if (!C.everHost && C.mode === 'joining') if (STANDALONE) UI.status(`⏳ Connexion au salon ${C.code}…`); else { let lb = '?', cn = '?'; try { lb = (NET.lobby.peers() || []).length; cn = NET.room.connected() ? 'oui' : 'non'; } catch (e) {} UI.status(`⏳ Recherche de l'hôte du salon ${C.code}… (${peers.filter((p) => !p.sameTab).length} autre(s) dans le salon · ${lb} sur la page du jeu · connecté : ${cn})`); }
         if (NET.denied || (!C.everHost && C.noHostT > 6 && !peers.some((p) => !p.sameTab) && NET.room?.connected && !NET.room.connected())) C.noHostT = Math.max(C.noHostT, 99);
-        if (C.noHostT > (C.everHost ? 8 : 20) || (STANDALONE && NET.room?.noHub?.())) {
-          const others = peers.filter((p) => !p.sameTab); if (STANDALONE && !C.everHost && (C.noHostT > 20 || NET.room?.noHub?.())) { leaveRoom(`Salon ${C.code} introuvable : vérifie le code, et que l’hôte est bien sur l’écran du salon (pas en partie).`); return; } const oldV = others.find((p) => p.presence?.n && p.presence?.v !== BUILD_V);
+        if (C.noHostT > (C.everHost ? 8 : 20) || (STANDALONE && (NET.room?.noHub?.() || NET.room?.failReason?.() === 'p2p'))) {
+          const others = peers.filter((p) => !p.sameTab); if (STANDALONE && !C.everHost && (C.noHostT > 20 || NET.room?.noHub?.() || NET.room?.failReason?.() === 'p2p')) { const why = NET.room?.failReason?.(); leaveRoom(why === 'p2p' ? `Salon ${C.code} trouvé, mais vos deux réseaux bloquent la connexion directe (4G, wifi d’école ou d’entreprise…). Essayez tous les deux sur le même wifi, ou depuis un partage de connexion.` : why === 'nohub' ? `Aucun salon ${C.code} : vérifie le code, et que l’hôte a toujours sa page ouverte.` : `Salon ${C.code} : l’hôte ne répond pas. Réessaie dans quelques secondes.`); return; } const oldV = others.find((p) => p.presence?.n && p.presence?.v !== BUILD_V);
           leaveRoom(C.everHost ? "L'hôte a quitté le salon." : !others.length ? (NET.denied || (NET.room?.connected && !NET.room.connected()) ? '⛔ Ton compte n’a pas accès aux salons de ce jeu : l’hôte doit t’inviter par e-mail (bouton « Share » de l’artefact), le lien public ne suffit pas.' : `Salon ${C.code} vide : personne ne te voit. Si tu as ouvert le jeu par le lien public, l’hôte doit t’inviter par e-mail (bouton « Share »).`) : oldV ? 'L’hôte a une ancienne version du jeu : rechargez tous les deux la page (Ctrl+F5).' : `Il y a ${others.length} personne(s) dans le salon ${C.code} mais pas d'hôte.`); return;
         }
       }
