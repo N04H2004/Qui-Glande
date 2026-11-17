@@ -5,6 +5,7 @@ function pebbleGeo(n, taper = 0, detail = 2, nTop = n) {
   for (let i = 0; i < P.count; i++) { let x = P.getX(i), y = P.getY(i), z = P.getZ(i); const e = n + (nTop - n) * (y * 0.5 + 0.5), r = Math.pow(Math.pow(Math.abs(x), e) + Math.pow(Math.abs(y), e) + Math.pow(Math.abs(z), e), -1 / e); x *= r; y *= r; z *= r; const k = 1 + taper * y; P.setXYZ(i, x * k, y, z * k); }
   return g;
 }
+const lat = (pts, seg = 16) => new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), seg); // profil tourné autour de l'axe vertical (chapeaux)
 const shade = (hex, k) => '#' + new THREE.Color(hex).multiplyScalar(k).getHexString();
 const CG = {
   head: new THREE.IcosahedronGeometry(1, 2), ico0: new THREE.IcosahedronGeometry(1, 0), ico1: new THREE.IcosahedronGeometry(1, 1),
@@ -12,6 +13,13 @@ const CG = {
   arm: new THREE.CylinderGeometry(0.07, 0.085, 0.36, 8), leg: new THREE.CylinderGeometry(0.095, 0.105, 0.38, 8), box: new THREE.BoxGeometry(1, 1, 1),
   hemi: new THREE.SphereGeometry(1, 12, 5, 0, Math.PI * 2, 0, Math.PI / 2), cone: new THREE.ConeGeometry(1, 1, 5), bob: new THREE.CylinderGeometry(0.3, 0.36, 0.22, 10),
   arc: new THREE.TorusGeometry(0.38, 0.035, 5, 10, Math.PI), ring: new THREE.TorusGeometry(1, 0.18, 4, 10),
+  cone8: new THREE.ConeGeometry(1, 1, 8), arcFat: new THREE.TorusGeometry(0.4, 0.045, 6, 14, Math.PI), ringFine: new THREE.TorusGeometry(1, 0.11, 6, 18), bow: pebbleGeo(2.6, 0.75, 1),
+  hCap: lat([[0.39, 0.12], [0.392, 0.2], [0.36, 0.31], [0.26, 0.385], [0.12, 0.415], [0, 0.42]]),
+  hBeanie: lat([[0.392, 0.1], [0.395, 0.2], [0.365, 0.33], [0.28, 0.43], [0.14, 0.475], [0, 0.485]]), hBeanieStripe: lat([[0.392, 0.24], [0.386, 0.27], [0.374, 0.3]]), hBeanieCuff: lat([[0.39, 0.02], [0.418, 0.04], [0.425, 0.09], [0.418, 0.14], [0.392, 0.16]]),
+  hStrawBrim: lat([[0.27, 0.2], [0.46, 0.185], [0.6, 0.2], [0.64, 0.235], [0.6, 0.235], [0.46, 0.215], [0.27, 0.23]], 20), hStrawTop: lat([[0.305, 0.2], [0.3, 0.38], [0.27, 0.44], [0.16, 0.455], [0, 0.44]]), hStrawBand: lat([[0.312, 0.225], [0.31, 0.3]]),
+  hToqueBand: lat([[0.29, 0.2], [0.275, 0.3], [0.285, 0.46]]),
+  hCrown: lat([[0.3, 0.33], [0.325, 0.36], [0.315, 0.42], [0.335, 0.46], [0.3, 0.46], [0.285, 0.42], [0.29, 0.34]]),
+  hBucket: lat([[0.35, 0.17], [0.5, 0.105], [0.525, 0.1], [0.52, 0.125], [0.37, 0.21], [0.345, 0.34], [0.27, 0.43], [0.13, 0.455], [0, 0.46]]), hBucketBand: lat([[0.378, 0.2], [0.36, 0.265]]),
   skull: pebbleGeo(2.75, -0.05, 2, 2.05), torso: pebbleGeo(3.3, 0.1, 2), pebble: pebbleGeo(2.8, 0, 1), hand: pebbleGeo(2.4, -0.12, 1), limb: new THREE.CapsuleGeometry(1, 2.3, 3, 9),
 };
 const _m4 = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _p = new THREE.Vector3(), _s = new THREE.Vector3(), _c = new THREE.Color();
@@ -44,28 +52,49 @@ function charGeos(sk, cust) {
     for (const t of T) headMain.push([CG.ico1, hair, t[0] * side, t[1], t[2], t[3], t[4], t[5], t[6], 0, t[8] * side]);
   }
   if (cust) { const hs = (sk[0] + sk[1] * 2 + sk[2]) % 3; if (hs === 1) headMain.push([CG.ico1, hair, 0, 0.32, -0.24, 0.16, 0.16, 0.16]); else if (hs === 2) headMain.push([CG.ico1, hair, 0, -0.2, -0.22, 0.3, 0.3, 0.16]); } // clients : chignon ou cheveux longs
-  if (hat === 1) headMain.push([CG.hemi, '#e63946', 0, 0.13, 0, 0.375, 0.24, 0.375], [CG.hemi, '#e63946', 0, 0.14, 0.3, 0.2, 0.03, 0.2]);
-  else if (hat === 2) headMain.push([CG.hemi, '#2d7dd2', 0, 0.06, 0, 0.385, 0.36, 0.385], [CG.cyl8, '#ffffff', 0, 0.08, 0, 0.39, 0.1, 0.39], [CG.ico1, '#ffffff', 0, 0.47, 0, 0.1, 0.1, 0.1]);
-  else if (hat === 3) headMain.push([CG.cyl8, '#e8c872', 0, 0.22, 0, 0.6, 0.04, 0.6], [CG.cyl8, '#e8c872', 0, 0.34, 0, 0.3, 0.22, 0.3], [CG.cyl8, '#d62828', 0, 0.27, 0, 0.305, 0.06, 0.305]);
-  else if (hat === 4) headMain.push([CG.cyl8, white, 0, 0.42, 0, 0.26, 0.32, 0.26], [CG.ico1, white, 0, 0.63, 0, 0.32, 0.2, 0.32]);
-  else if (hat === 5) { headMain.push([CG.cyl8, '#ffc83d', 0, 0.4, 0, 0.3, 0.14, 0.3]); for (let k = 0; k < 5; k++) { const a = (k / 5) * Math.PI * 2; headMain.push([CG.cone, '#ffc83d', Math.cos(a) * 0.255, 0.53, Math.sin(a) * 0.255, 0.055, 0.14, 0.055]); } }
-  else if (hat === 6) headMain.push([CG.bob, '#b5a27a', 0, 0.28, 0], [CG.cyl8, '#b5a27a', 0, 0.18, 0, 0.47, 0.03, 0.47]);
-  else if (hat === 7) for (const s of [-1, 1]) headMain.push([CG.cyl6, '#333', 0.12 * s, 0.5, 0, 0.014, 0.32, 0.014, 0, 0, -0.35 * s], [CG.ico1, '#6be36b', 0.19 * s, 0.67, 0, 0.07, 0.07, 0.07]);
+  // ---- chapeaux (profils tournés, formes pleines et lissées) ----
+  if (hat === 1) { // casquette : calotte ajustée, bouton, visière courbe plus sombre, écusson
+    headMain.push([CG.hCap, '#e63946', 0, 0.04, 0], [CG.ico1, '#c22f3b', 0, 0.455, -0.01, 0.035, 0.02, 0.035], [CG.pebble, '#c22f3b', 0, 0.175, 0.42, 0.215, 0.02, 0.17, 0.2], [CG.pebble, white, 0, 0.29, 0.345, 0.07, 0.05, 0.02, -0.35]);
+  } else if (hat === 2) { // bonnet : maille haute, rayure, revers épais, pompon
+    headMain.push([CG.hBeanie, '#2d7dd2', 0, 0.08, 0], [CG.hBeanieStripe, '#8fc3f2', 0, 0.08, 0], [CG.hBeanieCuff, white, 0, 0.08, 0], [CG.ico1, white, 0, 0.6, -0.02, 0.105, 0.105, 0.105]);
+  } else if (hat === 3) { // chapeau de paille : large bord relevé, calotte pincée, ruban
+    headMain.push([CG.hStrawBrim, '#e8c872'], [CG.hStrawTop, '#f0d488'], [CG.hStrawBand, '#d62828'], [CG.pebble, '#d62828', 0.3, 0.26, 0.07, 0.02, 0.05, 0.06, 0, 0, 0.2]);
+  } else if (hat === 4) { // toque : bandeau droit, dessus bouffant
+    headMain.push([CG.hToqueBand, white], [CG.ico1, white, 0, 0.6, 0, 0.3, 0.17, 0.3]);
+    for (let k = 0; k < 6; k++) { const a = (k / 6) * Math.PI * 2; headMain.push([CG.ico1, k % 2 ? '#f1f1f6' : white, Math.cos(a) * 0.2, 0.56, Math.sin(a) * 0.2, 0.17, 0.15, 0.17]); }
+  } else if (hat === 5) { // couronne : bandeau galbé, pointes à boule, pierres
+    headMain.push([CG.hCrown, '#ffc83d']);
+    for (let k = 0; k < 6; k++) { const a = (k / 6) * Math.PI * 2 + Math.PI / 2, c = Math.cos(a), s = Math.sin(a); headMain.push([CG.cone8, '#ffc83d', c * 0.3, 0.53, s * 0.3, 0.06, 0.15, 0.06], [CG.ico1, '#ffe38a', c * 0.3, 0.615, s * 0.3, 0.028, 0.028, 0.028], [CG.ico1, ['#e23d4b', '#2d7dd2', '#56c271'][k % 3], c * 0.325, 0.4, s * 0.325, 0.03, 0.036, 0.03]); }
+  } else if (hat === 6) { // bob : calotte ronde, bord tombant, surpiqûre
+    headMain.push([CG.hBucket, '#b5a27a', 0, 0.09, 0], [CG.hBucketBand, '#8f7f5c', 0, 0.09, 0]);
+  } else if (hat === 7) { // antennes : serre-tête, tiges recourbées, boules
+    headMain.push([CG.arc, '#3a3a44', 0, 0.02, 0, 1.02, 1.0, 1.02]);
+    for (const s of [-1, 1]) headMain.push([CG.cyl6, '#3a3a44', 0.13 * s, 0.47, 0, 0.014, 0.2, 0.014, 0, 0, -0.2 * s], [CG.cyl6, '#3a3a44', 0.185 * s, 0.63, 0, 0.014, 0.16, 0.014, 0, 0, -0.55 * s], [CG.ico1, '#6be36b', 0.24 * s, 0.72, 0, 0.075, 0.075, 0.075], [CG.ico0, '#d4ffd0', 0.225 * s, 0.745, 0.05, 0.02, 0.02, 0.012]);
+  }
   // visage : grands yeux ronds, pupilles brunes avec reflet, nez en galet (sourcils et bouche sont des pièces mobiles, voir faceParts)
   const face = [];
   for (const s of [-1, 1]) face.push([CG.ico1, white, 0.14 * s, 0.02, 0.283, 0.1, 0.108, 0.05], [CG.ico1, eye, 0.136 * s, 0.014, 0.32, 0.049, 0.055, 0.028], [CG.ico0, white, 0.122 * s, 0.038, 0.343, 0.017, 0.017, 0.009]);
   face.push([CG.ico1, shade(skin, 0.93), 0, -0.06, 0.335, 0.05, 0.055, 0.062]);
-  if (acc === 1) { for (const s of [-1, 1]) face.push([CG.pebble, '#111111', 0.14 * s, 0.022, 0.33, 0.118, 0.1, 0.035]); face.push([CG.pebble, '#111111', 0, 0.05, 0.345, 0.06, 0.016, 0.014]); }
-  else if (acc === 2) for (const s of [-1, 1]) face.push([CG.ico1, '#4a2c17', 0.065 * s, -0.115, 0.335, 0.07, 0.028, 0.03, 0, 0, 0.25 * s]);
-  else if (acc === 4) { headMain.push([CG.arc, '#2a2135', 0, 0.04, 0, 1.05, 1.05, 1.05]); for (const s of [-1, 1]) headMain.push([CG.cyl8, '#ff5a5f', 0.4 * s, 0.0, 0, 0.11, 0.08, 0.11, 0, 0, Math.PI / 2]); }
-  else if (acc === 5) { for (const s of [-1, 1]) face.push([CG.ring, '#333333', 0.14 * s, 0.022, 0.335, 0.095, 0.095, 0.085]); face.push([CG.cyl6, '#333333', 0, 0.035, 0.345, 0.008, 0.07, 0.008, 0, 0, Math.PI / 2]); }
+  // ---- accessoires ----
+  const temples = (c) => { for (const s of [-1, 1]) face.push([CG.pebble, c, 0.285 * s, 0.03, 0.3, 0.06, 0.014, 0.02, 0, -0.5 * s, 0], [CG.cyl6, c, 0.362 * s, 0.02, 0.15, 0.009, 0.26, 0.009, Math.PI / 2, 0, 0.17 * s]); };
+  if (acc === 1) { // lunettes de soleil : verres arrondis, monture, branches, reflet
+    for (const s of [-1, 1]) face.push([CG.pebble, '#16161c', 0.14 * s, 0.022, 0.328, 0.12, 0.1, 0.036], [CG.pebble, '#3a3a48', 0.14 * s, 0.022, 0.322, 0.132, 0.112, 0.03], [CG.pebble, '#8d94b8', 0.105 * s + 0.02, 0.06, 0.362, 0.035, 0.012, 0.004, 0, 0, 0.5]);
+    face.push([CG.pebble, '#3a3a48', 0, 0.05, 0.342, 0.06, 0.016, 0.014]); temples('#3a3a48');
+  } else if (acc === 2) { // moustache : deux lobes relevés aux pointes
+    for (const s of [-1, 1]) face.push([CG.ico1, '#4a2c17', 0.058 * s, -0.115, 0.338, 0.07, 0.03, 0.032, 0, 0, 0.22 * s], [CG.ico1, '#4a2c17', 0.125 * s, -0.1, 0.325, 0.035, 0.024, 0.024, 0, 0, 0.7 * s], [CG.ico0, '#4a2c17', 0.15 * s, -0.075, 0.315, 0.018, 0.02, 0.016]);
+  } else if (acc === 4) { // casque audio : arceau rembourré, coques, coussinets
+    headMain.push([CG.arcFat, '#2a2135', 0, 0.03, 0, 1, 1.22, 1], [CG.pebble, '#4a4458', 0, 0.525, 0, 0.13, 0.03, 0.075]);
+    for (const s of [-1, 1]) headMain.push([CG.pebble, '#ff5a5f', 0.415 * s, -0.01, 0, 0.055, 0.125, 0.115], [CG.pebble, '#2a2135', 0.385 * s, -0.01, 0, 0.035, 0.105, 0.095], [CG.ico0, '#ffd0d2', 0.47 * s, -0.01, 0, 0.012, 0.04, 0.04]);
+  } else if (acc === 5) { // lunettes rondes : cerclage fin, pont, branches
+    for (const s of [-1, 1]) face.push([CG.ringFine, '#3a2a22', 0.14 * s, 0.022, 0.33, 0.1, 0.1, 0.08]); face.push([CG.cyl6, '#3a2a22', 0, 0.04, 0.34, 0.009, 0.08, 0.009, 0, 0, Math.PI / 2]); temples('#3a2a22');
+  }
   // buste : polo (col, patte de boutonnage), cou, bassin dans la couleur du pantalon
   const torsoB = [[CG.torso, shirt, 0, 0.74, 0, 0.26, 0.295, 0.18], [CG.pebble, pants, 0, 0.5, 0, 0.245, 0.1, 0.17]];
   const torso = [...torsoB, [CG.cyl8, skinD, 0, 1.04, 0, 0.095, 0.12, 0.09], [CG.cyl8, collarC, 0, 1.012, -0.01, 0.13, 0.05, 0.118]];
   for (const s of [-1, 1]) torso.push([CG.pebble, collarC, 0.085 * s, 0.995, 0.122, 0.095, 0.022, 0.07, 0.6, -0.35 * s, 0.45 * s]);
   torso.push([CG.pebble, shade(shirt, 0.86), 0, 0.905, 0.172, 0.026, 0.085, 0.014], [CG.ico0, white, 0, 0.94, 0.188, 0.011, 0.011, 0.006], [CG.ico0, white, 0, 0.885, 0.188, 0.011, 0.011, 0.006]);
   if (!cust) torso.push([CG.pebble, '#1fb5a3', 0.135, 0.875, 0.172, 0.06, 0.04, 0.012], [CG.pebble, white, 0.135, 0.88, 0.181, 0.04, 0.012, 0.006]); // badge du magasin
-  if (acc === 3) for (const s of [-1, 1]) torso.push([CG.cone, '#d62828', 0.06 * s, 0.985, 0.19, 0.055, 0.11, 0.04, 0, 0, (Math.PI / 2) * s]);
+  if (acc === 3) { for (const s of [-1, 1]) torso.push([CG.bow, '#d62828', 0.062 * s, 0.975, 0.2, 0.062, 0.05, 0.03, 0, 0, (Math.PI / 2) * s]); torso.push([CG.ico1, '#a81e1e', 0, 0.975, 0.21, 0.024, 0.03, 0.024]); } // nœud papillon : deux coques pincées et un nœud central
   // bras : manche courte, avant-bras nu, main ronde avec pouce
   const armS = [[CG.pebble, shirt, 0, -0.085, 0, 0.1, 0.135, 0.1], [CG.limb, skin, 0, -0.27, 0, 0.066, 0.066, 0.066], [CG.hand, skin, 0, -0.425, 0.005, 0.078, 0.09, 0.064]];
   const arm = [...armS, [CG.ico1, skin, 0, -0.4, 0.062, 0.03, 0.046, 0.032, 0.5]];
