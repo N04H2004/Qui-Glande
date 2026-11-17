@@ -39,7 +39,7 @@ const pjKeep = (p) => p.on('disconnected', () => { setTimeout(() => { try { if (
 function makePeerLobby() { return { join: (name, opt) => peerJoin(name, opt), peers: () => [], connected: () => true, onConnection: (cb) => { setTimeout(() => cb(true), 0); return () => {}; } }; }
 function peerJoin(name, opt = {}) {
   return new Promise((resolve, reject) => {
-    const R = { me: null, hub: false, pres: {}, others: new Map(), conns: new Map(), hubConn: null, snap: null, peer: null, lastHub: 0, dirty: false, lastSent: 0, ft: null, done: false };
+    const R = { t0: Date.now(), dg: { sig: 0, ice: '-', open: 0, all: 0, n: 0 }, me: null, hub: false, pres: {}, others: new Map(), conns: new Map(), hubConn: null, snap: null, peer: null, lastHub: 0, dirty: false, lastSent: 0, ft: null, done: false };
     const hubId = PJ_PREFIX + name;
     const snapshot = () => {
       if (!R.snap) { const arr = R.me ? [Object.freeze({ peer: R.me, by: null, isMe: true, sameTab: true, kind: 'viewer', guest: false, presence: Object.freeze({ ...R.pres }), updatedAt: Date.now() })] : []; for (const [id, o] of R.others) arr.push(Object.freeze({ peer: id, by: null, isMe: false, sameTab: false, kind: 'viewer', guest: false, presence: o.pres, updatedAt: o.t })); R.snap = Object.freeze(arr); }
@@ -60,6 +60,9 @@ function peerJoin(name, opt = {}) {
       peers: snapshot,
       connected: () => R.hub || !!(R.hubConn && R.hubConn.open),
       noHub: () => !!R.noHub,
+      // diagnostic court affiché avec les erreurs : sig = s pour joindre le serveur, ice = état du lien direct, open = s pour l'ouvrir, all = s pour recevoir la liste du salon, n = messages reçus de l'hôte
+      diag: () => { const d = R.dg; return `sig ${d.sig || '✗'} · lien ${d.ice} · ouvert ${d.open || '✗'} · liste ${d.all || '✗'} · msg ${d.n}`; },
+      busy: () => !R.hub && !R.noHub && !R.fail && !(R.dg.all > 0) && Date.now() - R.t0 < 40000 && R.dg.ice !== 'failed', // connexion encore en cours : on patiente
       failReason: () => R.fail || (R.noHub ? 'nohub' : ''), // 'nohub' : aucun salon avec ce code · 'p2p' : salon trouvé mais connexion directe impossible entre les deux réseaux
       leave: async () => { clearInterval(R.iv); clearTimeout(R.ft); try { R.peer && R.peer.destroy(); } catch (e) {} R.others.clear(); R.snap = null; },
     };
@@ -80,13 +83,13 @@ function peerJoin(name, opt = {}) {
     function asMember() {
       const p = new window.Peer(undefined, PJ_CFG); R.peer = p; pjKeep(p);
       p.on('open', (id) => {
-        R.me = id; R.snap = null; const c = p.connect(hubId, { reliable: true, serialization: 'json' }); R.hubConn = c;
-        c.on('open', () => { R.lastHub = Date.now(); R.hubOpen = true; R.fail = ''; flush(true); });
+        R.me = id; R.snap = null; R.dg.sig = ((Date.now() - R.t0) / 1000).toFixed(1); const c = p.connect(hubId, { reliable: true, serialization: 'json' }); R.hubConn = c;
+        c.on('open', () => { R.lastHub = Date.now(); R.hubOpen = true; R.fail = ''; R.dg.open = ((Date.now() - R.t0) / 1000).toFixed(1); flush(true); });
         // le salon existe (le serveur a transmis la demande) mais la liaison directe n'aboutit pas : réseaux incompatibles sans relais TURN
         const p2pFail = () => { if (!R.hubOpen && !R.noHub) R.fail = 'p2p'; };
-        c.on('error', p2pFail); setTimeout(p2pFail, 14000);
-        try { const watch = () => { const pc = c.peerConnection; if (!pc) return setTimeout(watch, 300); pc.addEventListener('iceconnectionstatechange', () => { if (pc.iceConnectionState === 'failed') p2pFail(); }); }; watch(); } catch (e) {}
-        c.on('data', (m) => { R.lastHub = Date.now(); if (!m || typeof m !== 'object') return; if (m.t === 'all' && Array.isArray(m.list)) { for (const [id, pr] of m.list) if (id !== R.me) setOther(id, pr); } else if (m.t === 'p') { if (m.id !== R.me) setOther(m.id, m.p); } else if (m.t === 'x') dropOther(m.id); });
+        c.on('error', p2pFail); setTimeout(() => { if (R.dg.ice !== 'checking' && R.dg.ice !== 'new') p2pFail(); }, 14000); setTimeout(p2pFail, 35000);
+        try { const watch = () => { const pc = c.peerConnection; if (!pc) return setTimeout(watch, 300); R.dg.ice = pc.iceConnectionState; pc.addEventListener('iceconnectionstatechange', () => { R.dg.ice = pc.iceConnectionState; if (pc.iceConnectionState === 'failed') p2pFail(); }); }; watch(); } catch (e) {}
+        c.on('data', (m) => { R.lastHub = Date.now(); R.dg.n++; if (!m || typeof m !== 'object') return; if (m.t === 'all' && !R.dg.all) R.dg.all = ((Date.now() - R.t0) / 1000).toFixed(1); if (m.t === 'all' && Array.isArray(m.list)) { for (const [id, pr] of m.list) if (id !== R.me) setOther(id, pr); } else if (m.t === 'p') { if (m.id !== R.me) setOther(m.id, m.p); } else if (m.t === 'x') dropOther(m.id); });
         c.on('close', () => { R.others.clear(); R.snap = null; });
         if (!R.done) { R.done = true; resolve(api); }
       });
