@@ -585,13 +585,13 @@ function buildSales() {
   mbox(1.6, 0.35, 1.6, '#ff5a5f', 8, 0.175, 2.5);
   const nCans = 55, pcell = new Float32Array(nCans * 2); WORLD.pyr = new THREE.InstancedMesh(instGeo(PGEO.can, pcell), shelfMat(), nCans); WORLD.pyr.castShadow = true; WORLD.pyr.frustumCulled = false;
   WORLD.pyrOl = new THREE.InstancedMesh(PGEO_OL.can, OUTLINE_MAT, nCans); WORLD.pyrOl.frustumCulled = false;
-  WORLD.pyrStand = []; WORLD.pyrFall = []; WORLD.pyrK = []; let k = 0;
+  WORLD.pyrK = []; let k = 0; const pr = seeded(7); // disposition à graine fixe : la même pyramide chez tous les joueurs
   for (let L = 0; L < 5; L++) { const n = 5 - L; for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
-    DUMMY.position.set(8 + (i - (n - 1) / 2) * 0.22, 0.35 + 0.13 + L * 0.26, 2.5 + (j - (n - 1) / 2) * 0.22); DUMMY.rotation.set(0, rnd(0, 1), 0); DUMMY.scale.set(1, 1, 1); DUMMY.updateMatrix(); WORLD.pyrStand.push(DUMMY.matrix.clone()); const sp = DUMMY.position.clone(), sq = DUMMY.quaternion.clone();
-    const a = rnd(0, Math.PI * 2), d = rnd(0.95, 2.3); DUMMY.position.set(8 + Math.cos(a) * d, 0.1, 2.5 + Math.sin(a) * d * 0.9 + 0.5); DUMMY.rotation.set(Math.PI / 2, rnd(0, 6), rnd(0, 6)); DUMMY.updateMatrix(); WORLD.pyrFall.push(DUMMY.matrix.clone());
-    WORLD.pyrK.push({ sp, sq, fp: DUMMY.position.clone(), fq: DUMMY.quaternion.clone(), L, r1: Math.random(), r2: Math.random(), ax: new THREE.Vector3(rnd(-1, 1), rnd(-1, 1), rnd(-1, 1)).normalize() });
-    const cl = cellOf(3, rndi(0, 3)); pcell[k * 2] = cl[0]; pcell[k * 2 + 1] = cl[1];
-    WORLD.pyr.setMatrixAt(k, WORLD.pyrStand[k]); WORLD.pyrOl.setMatrixAt(k, WORLD.pyrStand[k]); k++; } }
+    DUMMY.position.set(8 + (i - (n - 1) / 2) * 0.22, 0.35 + 0.13 + L * 0.26, 2.5 + (j - (n - 1) / 2) * 0.22); DUMMY.rotation.set(0, pr(), 0); DUMMY.scale.set(1, 1, 1); DUMMY.updateMatrix();
+    const sp = DUMMY.position.clone(), sq = DUMMY.quaternion.clone();
+    WORLD.pyrK.push({ sp, sq, p: sp.clone(), q: sq.clone(), fp: sp.clone(), fq: sq.clone(), v: new THREE.Vector3(), w: new THREE.Vector3(), ax: new THREE.Vector3(1, 0, 0), st: 0, rel: 0, L, r1: pr() });
+    const cl = cellOf(3, Math.floor(pr() * 4) % 4); pcell[k * 2] = cl[0]; pcell[k * 2 + 1] = cl[1];
+    WORLD.pyr.setMatrixAt(k, DUMMY.matrix); WORLD.pyrOl.setMatrixAt(k, DUMMY.matrix); k++; } }
   WORLD.pyr.userData.dyn = true; WORLD.pyrOl.userData.dyn = true; scene.add(WORLD.pyr, WORLD.pyrOl);
   sign('PROMO −50 %', 1.8, 0.5, 8, 2.7, 2.5, 0, { bg: '#ffd23f', fg: '#d62828', double: true });
   mcyl(0.02, 1.2, '#777', 8, 3.4, 2.5, { cast: false, ol: false });
@@ -710,32 +710,125 @@ function olMerge(list) {
 // ---------- état dynamique ----------
 const easeOutBack = (t) => { const c1 = 1.9, u = t - 1; return 1 + (c1 + 1) * u * u * u + c1 * u * u; };
 const _q1 = new THREE.Quaternion(), _q2 = new THREE.Quaternion(), _v1 = new THREE.Vector3(), _one = new THREE.Vector3(1, 1, 1), _m1 = new THREE.Matrix4();
-// pyramide : chaque conserve suit sa trajectoire (les plus hautes partent en premier, puis roulent et rebondissent) ; à la remise en place, elles sautent une à une sur le socle
-function setPyramid(fallen, instant) {
-  WORLD.pyrFallen = fallen;
-  if (instant) { WORLD.pyrA = null; for (let k = 0; k < WORLD.pyrStand.length; k++) { const m = fallen ? WORLD.pyrFall[k] : WORLD.pyrStand[k]; WORLD.pyr.setMatrixAt(k, m); WORLD.pyrOl.setMatrixAt(k, m); } WORLD.pyr.instanceMatrix.needsUpdate = true; WORLD.pyrOl.instanceMatrix.needsUpdate = true; return; }
-  WORLD.pyrA = { t: 0, fall: fallen };
-  if (fallen) { fxDust(8, 0.5, 2.6, 16, 1.5); fxShake(0.8, 8, 2.5); } else fxSparkle(8, 1.3, 2.5, 12);
+const PUDDLE_GEO = new THREE.CircleGeometry(1, 22);
+// générateur pseudo-aléatoire à graine : avec la même graine, tous les joueurs obtiennent exactement la même suite
+function seeded(a) { a = ((a | 0) + 0x9e3779b9) | 0; return () => { a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+// ---- pyramide : vraie chute simulée. Chaque conserve est un corps qui tombe, rebondit, se couche puis ROULE sans glisser autour de son axe,
+// cogne les autres boîtes, le socle et les meubles. Pas de temps fixe + graine tirée de l'identifiant du dégât (diffusé par l'hôte) :
+// la simulation est déterministe, tous les joueurs voient les mêmes boîtes finir aux mêmes endroits.
+const PYR_R = 0.1, PYR_H = 1 / 120, _v2 = new THREE.Vector3(); let PYR_OBS = null;
+const pyrGround = (x, z) => (Math.abs(x - 8) < 0.8 && Math.abs(z - 2.5) < 0.8 ? 0.35 : 0);
+function pyrSimStart(seed) {
+  if (!PYR_OBS) PYR_OBS = BOXES.filter((b) => b.t !== 'pyramid' && b.x1 > 2 && b.x0 < 14 && b.z1 > -4 && b.z0 < 9);
+  const r = seeded(seed * 7919 + 13), a = (r() - 0.5) * 1.3, dx = Math.sin(a), dz = -Math.cos(a); // poussée : depuis le côté du saboteur
+  for (const c of WORLD.pyrK) {
+    c.p.copy(c.sp); c.q.copy(c.sq); c.st = 0;
+    const ox = c.sp.x - 8, oz = c.sp.z - 2.5, ol = Math.hypot(ox, oz), side = clamp(-(ox * dx + oz * dz) / 0.6, -1, 1);
+    c.rel = 0.03 + (side * 0.5 + 0.5) * 0.2 + (4 - c.L) * 0.022 + r() * 0.05;
+    const ra = r() * 6.283, rx = ol > 0.05 ? ox / ol : Math.cos(ra), rz = ol > 0.05 ? oz / ol : Math.sin(ra), s1 = 0.5 + r() * 1.7, s2 = 0.8 + r() * 1.2;
+    c.v.set(rx * s1 + dx * s2, 0.4 + r() * 1.5 + c.L * 0.28, rz * s1 + dz * s2);
+    c.w.set(r() - 0.5, r() - 0.5, r() - 0.5).normalize().multiplyScalar(3 + r() * 8);
+  }
+  WORLD.pyrS = { t: 0, acc: 0 };
+}
+function pyrWalls(c) {
+  const R = PYR_R, p = c.p, v = c.v;
+  const hit = (b, top) => {
+    if (p.y - R * 0.5 > top) return; const cx = clamp(p.x, b.x0, b.x1), cz = clamp(p.z, b.z0, b.z1); let nx = p.x - cx, nz = p.z - cz, d = Math.hypot(nx, nz);
+    if (d >= R) return;
+    if (d < 1e-6) { const e = [p.x - b.x0, b.x1 - p.x, p.z - b.z0, b.z1 - p.z], m = Math.min(e[0], e[1], e[2], e[3]); nx = m === e[0] ? -1 : m === e[1] ? 1 : 0; nz = m === e[2] ? -1 : m === e[3] ? 1 : 0; if (nx) nz = 0; p.x += nx * (m + R); p.z += nz * (m + R); }
+    else { nx /= d; nz /= d; p.x += nx * (R - d); p.z += nz * (R - d); }
+    const vn = v.x * nx + v.z * nz; if (vn < 0) { v.x -= 1.4 * vn * nx; v.z -= 1.4 * vn * nz; if (c.st === 2) c.ax.set(-nz, 0, nx); } // la boîte repart, couchée parallèlement à l'obstacle
+  };
+  hit(PYR_PED, 0.33); for (const b of PYR_OBS) hit(b, b.h ?? 3);
+}
+const PYR_PED = { x0: 7.2, x1: 8.8, z0: 1.7, z1: 3.3 };
+function pyrClink(c, imp) { if (WORLD.clock - (WORLD.pyrCk || 0) < 0.05 || typeof SFX === 'undefined') return; WORLD.pyrCk = WORLD.clock; const d = Math.hypot(camera.position.x - c.p.x, camera.position.z - c.p.z); if (d < 24) SFX.play('clink', clamp(imp / 3, 0.25, 1) * (1 - d / 24)); }
+function pyrSimStep(h, quiet) {
+  const S = WORLD.pyrS, K = WORLD.pyrK, R = PYR_R; S.t += h; let moving = false;
+  for (const c of K) {
+    if (c.st === 0) { moving = true; if (S.t >= c.rel) c.st = 1; continue; }
+    if (c.st === 1) { // en l'air : gravité, culbute libre
+      moving = true; c.v.y -= 9.8 * h; c.p.addScaledVector(c.v, h);
+      const wl = c.w.length(); if (wl > 1e-4) { _q2.setFromAxisAngle(_v1.copy(c.w).multiplyScalar(1 / wl), wl * h); c.q.premultiply(_q2); }
+      pyrWalls(c);
+      const gh = pyrGround(c.p.x, c.p.z);
+      if (c.p.y - R < gh && c.v.y < 0) {
+        const imp = -c.v.y; c.p.y = gh + R;
+        if (imp > 1.1) { c.v.y = imp * 0.36; c.v.x *= 0.84; c.v.z *= 0.84; c.w.multiplyScalar(0.6); if (!quiet) pyrClink(c, imp); }
+        else { c.st = 2; c.v.y = 0; _v1.set(0, 1, 0).applyQuaternion(c.q); _v1.y = 0; if (_v1.lengthSq() < 0.04) _v1.set(-c.v.z, 0, c.v.x); if (_v1.lengthSq() < 1e-6) _v1.set(1, 0, 0); c.ax.copy(_v1.normalize()); }
+      }
+    } else { // au sol : la boîte roule perpendiculairement à son axe (peu de frottement) et glisse mal dans l'axe (beaucoup)
+      if (pyrGround(c.p.x, c.p.z) < c.p.y - R - 0.02) { c.st = 1; c.w.set(c.v.z, 0, -c.v.x).multiplyScalar(1 / R); moving = true; continue; }
+      let al = c.v.x * c.ax.x + c.v.z * c.ax.z, px = c.v.x - al * c.ax.x, pz = c.v.z - al * c.ax.z; const ps = Math.hypot(px, pz);
+      al = Math.sign(al) * Math.max(0, Math.abs(al) - 5 * h);
+      const ns = Math.max(0, ps - (0.75 + ps * 0.55) * h), f = ps > 1e-6 ? ns / ps : 0; px *= f; pz *= f;
+      c.v.x = px + al * c.ax.x; c.v.z = pz + al * c.ax.z; c.p.x += c.v.x * h; c.p.z += c.v.z * h;
+      if (ns > 0.015) { _v1.set(pz, 0, -px).normalize(); _q2.setFromAxisAngle(_v1, (ns * h) / R); c.q.premultiply(_q2); moving = true; } else if (ns > 0) { c.v.x = al * c.ax.x; c.v.z = al * c.ax.z; }
+      _v1.set(0, 1, 0).applyQuaternion(c.q); // l'axe de la boîte se couche à l'horizontale
+      if (Math.abs(_v1.y) > 0.003) { _v2.copy(_v1); _v2.y = 0; if (_v2.lengthSq() < 1e-6) _v2.copy(c.ax); _v2.normalize(); _q2.setFromUnitVectors(_v1, _v2); _q1.identity().slerp(_q2, Math.min(1, 16 * h)); c.q.premultiply(_q1); c.ax.copy(_v2); moving = true; }
+      if (Math.abs(al) > 0.02) moving = true;
+      pyrWalls(c);
+    }
+  }
+  for (let i = 0; i < K.length; i++) { const a = K[i]; if (!a.st) continue; // chocs entre boîtes
+    for (let j = i + 1; j < K.length; j++) { const b = K[j]; if (!b.st) continue; const dy = a.p.y - b.p.y; if (dy > 0.17 || dy < -0.17) continue;
+      const dx = a.p.x - b.p.x, dz = a.p.z - b.p.z, d2 = dx * dx + dz * dz; if (d2 >= 4 * R * R || d2 < 1e-9) continue;
+      const d = Math.sqrt(d2), nx = dx / d, nz = dz / d, o = (2 * R - d) * 0.5; a.p.x += nx * o; a.p.z += nz * o; b.p.x -= nx * o; b.p.z -= nz * o;
+      const vr = (a.v.x - b.v.x) * nx + (a.v.z - b.v.z) * nz; if (vr < 0) { const jn = -0.75 * vr; a.v.x += jn * nx; a.v.z += jn * nz; b.v.x -= jn * nx; b.v.z -= jn * nz; if (!quiet && vr < -0.9) pyrClink(a, -vr * 1.5); }
+    } }
+  if ((!moving && S.t > 0.6) || S.t > 9) WORLD.pyrS = null;
+}
+function pyrWrite() { const K = WORLD.pyrK; for (let k = 0; k < K.length; k++) { _m1.compose(K[k].p, K[k].q, _one); WORLD.pyr.setMatrixAt(k, _m1); WORLD.pyrOl.setMatrixAt(k, _m1); } WORLD.pyr.instanceMatrix.needsUpdate = true; WORLD.pyrOl.instanceMatrix.needsUpdate = true; }
+function setPyramid(fallen, instant, seed) {
+  WORLD.pyrFallen = fallen; WORLD.pyrA = null;
+  if (fallen) { pyrSimStart(seed | 0); if (instant) { while (WORLD.pyrS) pyrSimStep(PYR_H, true); pyrWrite(); } else { fxDust(8, 0.9, 2.6, 16, 1.5); fxShake(0.8, 8, 2.5); } return; }
+  WORLD.pyrS = null;
+  if (instant) { for (const c of WORLD.pyrK) { c.p.copy(c.sp); c.q.copy(c.sq); } pyrWrite(); return; }
+  for (const c of WORLD.pyrK) { c.fp.copy(c.p); c.fq.copy(c.q); } WORLD.pyrA = { t: 0 }; fxSparkle(8, 1.3, 2.5, 12);
 }
 function animPyramid(dt) {
-  const A = WORLD.pyrA; if (!A) return; A.t += dt; let done = true;
-  for (let k = 0; k < WORLD.pyrK.length; k++) {
-    const c = WORLD.pyrK[k]; let u;
-    if (A.fall) u = clamp((A.t - ((4 - c.L) * 0.06 + c.r1 * 0.1)) / (0.55 + c.r2 * 0.3), 0, 1); else u = clamp((A.t - (c.L * 0.16 + c.r1 * 0.12)) / 0.34, 0, 1);
-    if (u < 1) done = false;
-    if (A.fall) {
-      _v1.lerpVectors(c.sp, c.fp, 1 - (1 - u) * (1 - u)); _v1.y = lerp(c.sp.y, c.fp.y, u * u) + (0.2 + c.r2 * 0.45) * 4 * u * (1 - u) * (1 - u) + (u > 0.82 ? Math.sin(((u - 0.82) / 0.18) * Math.PI) * 0.07 : 0);
-      _q1.slerpQuaternions(c.sq, c.fq, u); _q2.setFromAxisAngle(c.ax, 4 * u * (1 - u) * 3.5); _q1.multiply(_q2);
-    } else { const e = u * u * (3 - 2 * u); _v1.lerpVectors(c.fp, c.sp, e); _v1.y += Math.sin(u * Math.PI) * 0.45; _q1.slerpQuaternions(c.fq, c.sq, e); }
-    _m1.compose(_v1, _q1, _one); WORLD.pyr.setMatrixAt(k, _m1); WORLD.pyrOl.setMatrixAt(k, _m1);
+  const S = WORLD.pyrS;
+  if (S) { S.acc = Math.min(S.acc + dt, 0.1); while (S.acc >= PYR_H && WORLD.pyrS) { S.acc -= PYR_H; pyrSimStep(PYR_H, false); } pyrWrite(); return; }
+  const A = WORLD.pyrA; if (!A) return; A.t += dt; let done = true; // remise en place : les boîtes sautent une à une sur le socle
+  for (const c of WORLD.pyrK) {
+    const u = clamp((A.t - (c.L * 0.16 + c.r1 * 0.12)) / 0.34, 0, 1), e = u * u * (3 - 2 * u); if (u < 1) done = false;
+    c.p.lerpVectors(c.fp, c.sp, e); c.p.y += Math.sin(u * Math.PI) * 0.45; c.q.slerpQuaternions(c.fq, c.sq, e);
   }
-  WORLD.pyr.instanceMatrix.needsUpdate = true; WORLD.pyrOl.instanceMatrix.needsUpdate = true; if (done) WORLD.pyrA = null;
+  pyrWrite(); if (done) WORLD.pyrA = null;
 }
-const PUDDLE_GEO = new THREE.CircleGeometry(1, 22);
+// ---- lait : la bouteille tombe, rebondit, le bouchon saute, puis la flaque s'étale par lobes et par coulées (forme tirée de l'identifiant du dégât : identique pour tous) ----
+const MILK_MAT = new THREE.MeshStandardMaterial({ color: '#fbfbff', roughness: 0.06, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }), MILK_RIM = new THREE.MeshStandardMaterial({ color: '#c9d2ea', roughness: 0.35, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+function milkSpill(g, m) {
+  const r = seeded(m[0] * 31 + 5), dir = r() * 6.283, parts = [];
+  const blob = (x, z, rx, rz, ang, t0, dur, grow) => { const o = { t0, dur, rx, rz, x, z, grow, ms: [] }; for (const [mt, pad, y] of [[MILK_RIM, 0.035, 0.012], [MILK_MAT, 0, 0.016 + parts.length * 0.0002]]) { const p = new THREE.Mesh(PUDDLE_GEO, mt); p.rotation.x = -Math.PI / 2; p.rotation.z = -ang; p.position.set(x, y, z); p.scale.setScalar(0.001); p.receiveShadow = true; p.userData.pad = pad; g.add(p); o.ms.push(p); } o.ang = ang; parts.push(o); };
+  blob(0, 0, 0.6, 0.5, dir, 0, 1.7, 0); // nappe principale, sous le goulot
+  for (let i = 0; i < 7; i++) { const a = dir + (r() - 0.5) * 2.8, d = 0.22 + r() * 0.55; blob(Math.cos(a) * d, Math.sin(a) * d, 0.2 + r() * 0.3, 0.16 + r() * 0.22, r() * 3, 0.2 + r() * 0.9, 1 + r() * 0.9, 0); }
+  for (let i = 0; i < 3; i++) { const a = dir + (r() - 0.5) * 2, len = 0.75 + r() * 0.65, t0 = 0.8 + r() * 0.7; blob(0, 0, len / 2, 0.05 + r() * 0.03, a, t0, 1.3, 1); blob(Math.cos(a) * len, Math.sin(a) * len, 0.1 + r() * 0.05, 0.09 + r() * 0.04, 0, t0 + 1.0, 0.6, 0); } // coulées qui filent, terminées par une goutte
+  for (let i = 0; i < 7; i++) { const a = r() * 6.283, d = 0.75 + r() * 0.6, s = 0.03 + r() * 0.045; blob(Math.cos(a) * d, Math.sin(a) * d, s, s, 0, 0.02 + r() * 0.12, 0.18, 0); } // éclaboussures
+  const bg = new THREE.Group(); bg.rotation.y = -dir; g.add(bg); const bt = new THREE.Group(); bg.add(bt);
+  mcyl(0.09, 0.32, '#ffffff', 0, 0, 0, { parent: bt, geo: CYL6 }); mcyl(0.05, 0.06, '#eef1fa', 0, 0.19, 0, { parent: bt, geo: CYL6, ol: false }); mbox(0.19, 0.13, 0.19, '#2d7dd2', 0, -0.02, 0, { parent: bt, ol: false, cast: false });
+  const cap = msph(0.055, '#2d7dd2', 0, 0.23, 0, { parent: bt, geo: ICO0 }), cap2 = msph(0.055, '#2d7dd2', 0, 0.055, 0, { parent: bg, geo: ICO0 }); cap2.visible = false;
+  const capA = (r() - 0.5) * 1.4, capD = 0.9 + r() * 0.7, rollD = 0.12 + r() * 0.12; let hit = false, pour = 0;
+  const T0 = 0.42; // instant où la bouteille touche le sol
+  const pose = (t) => {
+    const f = Math.min(1, t / T0); let y = 1.25 - (1.25 - 0.09) * f * f, rz = -Math.PI / 2 * Math.min(1, f * 1.15);
+    if (t > T0) { const b = Math.min(1, (t - T0) / 0.3); y = 0.09 + Math.sin(b * Math.PI) * 0.1; rz = -Math.PI / 2; }
+    const back = t > T0 ? rollD * (1 - Math.exp(-(t - T0) * 2.5)) : 0; bt.position.set(-0.24 - back, y, 0); bt.rotation.set(back * 9, 0, rz);
+    if (t > T0) { cap.visible = false; cap2.visible = true; const s = Math.min(1, (t - T0) / 1.1), e = 1 - (1 - s) * (1 - s); cap2.position.set(Math.cos(capA) * capD * e, 0.055 + Math.abs(Math.sin(s * 9)) * 0.1 * (1 - s), Math.sin(capA) * capD * e); cap2.rotation.z = -e * 14; }
+    for (const o of parts) { const u = clamp((t - T0 - o.t0) / o.dur, 0, 1), e = 1 - Math.pow(1 - u, 3); for (const p of o.ms) { const pad = p.userData.pad * Math.min(1, u * 4); if (o.grow) { const l = o.rx * e; p.position.x = Math.cos(o.ang) * l; p.position.z = Math.sin(o.ang) * l; p.scale.set(Math.max(0.001, l + pad), Math.max(0.001, (o.rz + pad) * Math.min(1, u * 6)), 1); } else p.scale.set(Math.max(0.001, o.rx * e + pad), Math.max(0.001, o.rz * e + pad), 1); } }
+  };
+  pose(0);
+  FX.objs.push({ t: 0, life: 4.2, upd(o, u, dt) {
+    if (!g.parent) return false; const t = o.t; pose(t);
+    if (!hit && t >= T0) { hit = true; fxSplash(m[2], 0.12, m[3], '#ffffff', 16); fxRing(m[2], 0.05, m[3], 1.3, '#ffffff', 0.4); if (typeof SFX !== 'undefined' && fxNear(m[2], m[3], 22)) SFX.play('glug'); }
+    if (t > T0 && t < T0 + 1.5) { pour += dt; while (pour > 0.045) { pour -= 0.045; const a = dir + rnd(-0.5, 0.5), sp = rnd(0.5, 1.5); fxEmit({ x: m[2] + Math.cos(dir) * -0.06, y: 0.1, z: m[3] + Math.sin(dir) * -0.06, vx: Math.cos(a) * sp, vy: rnd(0.5, 1.4), vz: Math.sin(a) * sp, life: rnd(0.3, 0.5), s0: rnd(0.05, 0.09), s1: 0.03, col: '#ffffff', kind: 4, grav: 9.5 }); } }
+  }, end() { if (g.parent) pose(99); } });
+}
 function puddle(g, color, s = 1) { const p = new THREE.Mesh(PUDDLE_GEO, new THREE.MeshStandardMaterial({ color, transparent: true, opacity: 0.94, roughness: 0.06, metalness: 0, depthWrite: false })); p.rotation.x = -Math.PI / 2; p.position.y = 0.016; p.scale.set(rnd(0.7, 0.95) * s, rnd(0.55, 0.8) * s, 1); p.rotation.z = rnd(0, 3); p.receiveShadow = true; g.add(p); const p2 = p.clone(); p2.scale.set(0.35 * s, 0.3 * s, 1); p2.position.set(rnd(-0.6, 0.6), 0.017, rnd(-0.6, 0.6)); g.add(p2); }
 function messMesh(m) {
   const g = new THREE.Group(); g.position.set(m[2], 0, m[3]); const t = m[1]; let fy = 0.3;
-  if (t === 'lait') { puddle(g, '#fbfbff'); const bt = mcyl(0.09, 0.32, '#ffffff', 0.3, 0.09, 0.1, { parent: g, geo: CYL6 }); bt.rotation.z = Math.PI / 2; msph(0.06, '#2d7dd2', 0.47, 0.09, 0.1, { parent: g, geo: ICO0 }); g.userData.flat = true; fxSplash(m[2], 0.15, m[3], '#ffffff', 14); }
+  if (t === 'lait') { milkSpill(g, m); g.userData.live = true; }
   else if (t === 'tag' || t === 'mix') {
     const gi = Math.floor(m[4] / 2), side = m[4] % 2 ? 1 : -1; g.position.set(GOND_X[gi] + side * 0.62, 0, 1); fy = 1;
     if (t === 'tag') for (let i = 0; i < 9; i++) { const tg = mbox(0.02, 0.1, 0.17, pick(['#ff3b3b', '#ffd400', '#ff8a3d']), 0, [0.36, 0.92, 1.48][i % 3], -3 + i * 0.85 + rnd(-0.2, 0.2), { parent: g, cast: false, ol: false }); tg.rotation.x = rnd(-0.8, 0.8); }
@@ -744,13 +837,13 @@ function messMesh(m) {
   else if (t === 'smoke') { g.position.set(5.8, 0, -13.2); fy = 1.3; for (let i = 0; i < 6; i++) msph(0.07, '#d6a066', rnd(-0.35, 0.35), 1.0, rnd(0, 0.3), { parent: g, geo: ICO0, ol: false }); for (let i = 0; i < 3; i++) mbox(0.3, 0.012, 0.22, '#3a2a22', rnd(-0.3, 0.3), 0.985, rnd(0.05, 0.25), { parent: g, ry: rnd(0, 3), ol: false, cast: false }); }
   else if (t === 'melt') { puddle(g, '#9fdcff', 1.1); for (let i = 0; i < 4; i++) mbox(0.2, 0.1, 0.2, pick(['#ff9ecb', '#ffd23f', '#ffffff']), rnd(-0.5, 0.5), 0.06, rnd(-0.6, 0.6), { parent: g, ol: false }); g.userData.flat = true; fxSplash(m[2], 0.15, m[3], '#bfe9ff', 10); }
   else if (t === 'burn') { g.position.set(15.5, 0, -4.9); fy = 1.4; for (let i = 0; i < 4; i++) { const b = mcyl(0.06, 0.55, '#2a1a12', -0.6 + i * 0.4, 1.12, 0.05, { parent: g, geo: CYL6 }); b.rotation.z = Math.PI / 2; } }
-  g.userData.a = 0; g.userData.fy = fy; g.scale.setScalar(0.001); scene.add(g); return g;
+  g.userData.a = 0; g.userData.fy = fy; g.scale.setScalar(0.001); if (g.userData.live) { g.userData.a = 1; g.scale.setScalar(1); } scene.add(g); return g;
 }
 function syncWorld(Gs) {
   const dt = Math.min(0.1, Math.max(0, WORLD.clock - WORLD.lc)); WORLD.lc = WORLD.clock;
   for (let i = 0; i < SHELVES.length; i++) { const m = displayMask(Gs, i); if (m !== WORLD.masks[i]) setShelfMask(i, m); }
   animShelves(dt);
-  const py = !!Gs?.py; if (py !== WORLD.pyrFallen) setPyramid(py, !Gs); animPyramid(dt);
+  const py = !!Gs?.py; if (py !== WORLD.pyrFallen) setPyramid(py, !Gs, (Gs?.ms || []).find((m) => m[1] === 'pyr')?.[0] || 1); animPyramid(dt);
   const ms = Gs?.ms || []; const ids = new Set(ms.map((m) => m[0]));
   for (const [id, o] of WORLD.messes) if (!ids.has(id)) { if (o) { WORLD.dying.push({ o, t: 0 }); if (Gs) fxSparkle(o.position.x, o.userData.fy, o.position.z, 9); } WORLD.messes.delete(id); }
   for (const m of ms) if (!WORLD.messes.has(m[0])) WORLD.messes.set(m[0], m[1] === 'pyr' ? null : messMesh(m));
@@ -763,7 +856,7 @@ function syncWorld(Gs) {
   const t = WORLD.clock;
   const ov = Gs?.ov?.[0] ?? 0; const wc = WORLD.ovenWin.material.color;
   if (ov === 1) wc.setRGB(1.7, 0.62 + 0.2 * Math.sin(t * 4), 0.12); else if (ov === 2) wc.setRGB(2.3, 1.7 + 0.3 * Math.sin(t * 8), 0.5); else if (ov === 3) wc.setRGB(0.15, 0.1, 0.1); else wc.set('#3b2a2a');
-  const smokeOn = ms.some((m) => m[1] === 'smoke'); if (smokeOn && Math.sin(t * 10) > 0) WORLD.microWin.material.color.setRGB(2.4, 1.0, 0.25); else WORLD.microWin.material.color.set('#2a2a30');
+  const smokeOn = ms.some((m) => m[1] === 'smoke'); if (smokeOn && t < (WORLD.microZap || 0)) WORLD.microWin.material.color.setRGB(3.2, 3.4, 4.2); else if (smokeOn && Math.sin(t * 10) > 0) WORLD.microWin.material.color.setRGB(2.4, 1.0, 0.25); else WORLD.microWin.material.color.set('#2a2a30');
   const ring = (Gs?.tel || 0) > 0; WORLD.phone.rotation.z = ring ? Math.sin(t * 40) * 0.15 : 0; WORLD.phone.position.y = 1.18 + (ring ? Math.abs(Math.sin(t * 20)) * 0.05 : 0);
 }
 

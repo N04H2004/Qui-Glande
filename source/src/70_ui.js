@@ -27,7 +27,16 @@ const SFX = {
     else if (n === 'sneak') { this.tone(300, 0.12, 'sawtooth', 0.06); this.tone(240, 0.16, 'sawtooth', 0.06, 0.1); }
     else if (n === 'crash') { this.burst(0.5, 0.35, 2500); for (let i = 0; i < 6; i++) this.tone(rnd(900, 1800), 0.06, 'square', 0.04, i * 0.06); }
     else if (n === 'splash') this.burst(0.35, 0.2, 900);
-    else if (n === 'fire') { [392, 370, 349, 262].forEach((f, i) => this.tone(f, i === 3 ? 0.7 : 0.28, 'sawtooth', 0.09, i * 0.3, i === 3 ? 200 : null)); }
+    else if (n === 'fire') { // licenciement : souffle, coup de tampon, « dun, dun, duuun » qui s'étire pendant le ralenti
+      this.burst(0.34, 0.07, 2600); this.tone(70, 0.34, 'sawtooth', 0.05, 0, 190);
+      this.tone(130, 0.55, 'sine', 0.4, 0.35, 32); this.burst(0.28, 0.4, 480, 0.35); this.burst(0.07, 0.22, 4200, 0.35);
+      this.tone(98, 1.5, 'sine', 0.1, 0.42, 46); this.tone(196, 1.35, 'sawtooth', 0.035, 0.42, 62);
+      [[0.35, 0.34, [130.8, 155.6, 196]], [0.8, 0.34, [123.5, 146.8, 185]], [1.25, 1.5, [103.8, 130.8, 155.6]]].forEach(([t0, d, ch], i) => { for (const f of ch) { this.tone(f, d, 'sawtooth', 0.055, t0, i === 2 ? f * 0.94 : null); this.tone(f * 2, d * 0.8, 'square', 0.018, t0, i === 2 ? f * 1.88 : null); } this.tone(ch[0] / 2, d, 'triangle', 0.14, t0); });
+    }
+    else if (n === 'boxdrop') { this.tone(120, 0.22, 'sine', 0.3, 0, 44); this.burst(0.14, 0.22, 650); this.burst(0.3, 0.05, 5000, 0.03); }
+    else if (n === 'clink') { const f = rnd(1700, 3100); this.tone(f, 0.05, 'triangle', 0.06 * vol); this.tone(f * 1.52, 0.035, 'sine', 0.03 * vol, 0.004); }
+    else if (n === 'zap') { this.burst(0.11, 0.2 * vol, 6500); this.tone(1900, 0.09, 'square', 0.035 * vol, 0, 160); this.tone(2600, 0.06, 'sawtooth', 0.03 * vol, 0.05, 300); }
+    else if (n === 'glug') { this.tone(190, 0.1, 'sine', 0.14, 0, 90); this.burst(0.3, 0.16, 800, 0.02); [0.16, 0.3, 0.46].forEach((t0, i) => this.tone(330 - i * 40, 0.09, 'sine', 0.07, t0, 150)); }
     else if (n === 'meet') { this.tone(880, 0.5, 'sine', 0.15); this.tone(660, 0.7, 'sine', 0.15, 0.35); }
     else if (n === 'ann') { this.tone(523, 0.3, 'sine', 0.12); this.tone(659, 0.3, 'sine', 0.12, 0.25); this.tone(784, 0.45, 'sine', 0.12, 0.5); }
     else if (n === 'win') [523, 659, 784, 1046].forEach((f, i) => this.tone(f, 0.3, 'triangle', 0.12, i * 0.14));

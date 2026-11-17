@@ -1,14 +1,14 @@
 // ======================= DÉMARRAGE & BOUCLE =======================
 DBG.lowgfx = () => setGfx('low');
 window.__qgCloseMg = () => MG.close(null);
-Object.assign(DBG, { get NETR() { return NET.room; }, itemStep, hostUpdate, storeNeeds, OPEN, MG, VM, SHELVES, PEND,  C, H, ME, NET, KEYS, UI, AV, ST, WORLD, TUNE, curG, navPath, hostStart, hostAddBot, hostMeeting, hostFire, doSolo, sendAction, GFX, FX, POST, REFL, LIGHTS, setGfx, gfxAdapt, makeChar, animChar, setCharCarry, portraitURL });
+Object.assign(DBG, { get NETR() { return NET.room; }, itemStep, hostUpdate, storeNeeds, OPEN, MG, VM, SHELVES, PEND,  C, H, ME, NET, KEYS, UI, AV, ST, WORLD, TUNE, curG, navPath, hostStart, hostAddBot, hostMeeting, hostFire, doSolo, sendAction, GFX, FX, POST, REFL, LIGHTS, setGfx, gfxAdapt, makeChar, animChar, setCharCarry, portraitURL, fxEvent, CINE });
 for (const [k, f] of [['camera', () => camera], ['scene', () => scene], ['renderer', () => renderer]]) Object.defineProperty(DBG, k, { get: f });
 let lastT = performance.now();
 function frame(dt) { clientFrame(dt); UI.update(dt); }
 function loop(t) {
   requestAnimationFrame(loop);
   const dt = Math.min(0.25, Math.max(0, (t - lastT) / 1000)); lastT = t;
-  try { frame(dt); fxUpdate(dt); fxApplyShake(); lightTick(); renderFrame(); gfxAdapt(dt); } catch (e) { console.error(e); }
+  try { frame(dt); fxCam(); fxUpdate(dt); fxApplyShake(); lightTick(); renderFrame(); gfxAdapt(dt); } catch (e) { console.error(e); }
 }
 // onglet en arrière-plan : la logique continue (sinon l'hôte gèlerait la partie)
 setInterval(() => {

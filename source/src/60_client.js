@@ -457,7 +457,7 @@ function syncAvatars(dt, G) {
     if (mine || Math.hypot(w.x - a.x, w.z - a.z) > 3) { a.x = w.x; a.z = w.z; a.ry = w.ry; } else { a.x = lerp(a.x, w.x, k); a.z = lerp(a.z, w.z, k); a.ry = angLerp(a.ry, w.ry, k); }
     a.ch.root.position.set(a.x, 0, a.z); a.ch.root.rotation.y = a.ry;
     const d = Math.hypot(camera.position.x - a.x, camera.position.z - a.z);
-    animChar(a.ch, w.anim, dt, d);
+    animChar(a.ch, w.anim, dt * CINE.ts, d);
     a.ch.root.visible = !(id === NET.me && C.mode === 'game' && (ME.view === 1 || (!C.camMode && (C.camD ?? 9) < 0.9)));
     if (id === NET.me && C.camMode) a.ch.root.visible = true;
     if (id !== NET.me && C.mode === 'game' && ME.view === 1 && Math.hypot(camera.position.x - a.x, camera.position.z - a.z) < 0.55) a.ch.root.visible = false;
