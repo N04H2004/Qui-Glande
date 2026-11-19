@@ -213,7 +213,7 @@ const UI = {
     $('#meetInfo').innerHTML = dec ? (iMgr ? '👔 <b>À toi de trancher</b> : vire quelqu’un ou garde tout le monde.' : '👔 Le directeur prend sa décision…') : (iMgr ? '💬 Écoute ton équipe dans le chat (Entrée). Tu trancheras après le vote.' : alive ? '💬 Discute dans le chat (Entrée) et vote. Le directeur tranchera ensuite.' : '👻 Tu observes la réunion.') + (skips && dec ? ` · 🤷 ${skips} vote(s) blanc(s)` : '');
   },
   drawMini(G) {
-    const cv = $('#mini'), x = cv.getContext('2d'), Wd = cv.width, Hd = cv.height; const s = 10.3, ox = Wd / 2 - (-3 * s), oz = Hd / 2 - (4.3 * s);
+    const cv = $('#mini'), x = cv.getContext('2d'), Wd = cv.width, Hd = cv.height; const s = 8.6, ox = Wd / 2 - (-3 * s), oz = Hd / 2 - (0.3 * s);
     const X = (v) => ox + v * s, Z = (v) => oz + v * s;
     x.clearRect(0, 0, Wd, Hd);
     for (const zn of ZONES) { x.fillStyle = zn.outdoor ? 'rgba(120,130,145,.55)' : zn.id === 'vente' ? 'rgba(235,228,212,.85)' : 'rgba(205,200,190,.8)'; x.fillRect(X(zn.x0), Z(zn.z0), (zn.x1 - zn.x0) * s, (zn.z1 - zn.z0) * s); }

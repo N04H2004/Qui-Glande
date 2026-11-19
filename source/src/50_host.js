@@ -176,7 +176,7 @@ function hostSabotage(pid, st, sub, extra) {
   else if (st.id === 'microondes') { if (has('smoke')) return; g.ms.push([++H.mSeq, 'smoke', st.x, st.z, -1, T]); hostEvent(['boom']); }
   else if (st.id === 'congel') { if (has('melt')) return; g.ms.push([++H.mSeq, 'melt', st.x, st.z, -1, T]); takeProducts(9, 4); }
   else if (st.id === 'four' && sub === 'four') { if (g.ov[0] === 3) return; g.ov = [3, 0]; if (!has('burn')) g.ms.push([++H.mSeq, 'burn', st.x, st.z, -1, T]); hostEvent(['burn']); }
-  else if (!['sieste', 'echant', 'arcade'].includes(st.id)) return;
+  else if (!['sieste', 'echant', 'arcade', 'wc', 'fort', 'cour'].includes(st.id)) return;
   hostProd(-dmg * kG()); H.stats[pid][1]++; hostSuspicion(pid, st.x, st.z, place);
 }
 // ---------- stock ----------
@@ -414,7 +414,7 @@ function botWorker(b, dt, role) {
     const mp = hostPos(g.mg);
     if (mp && Math.hypot(mp[0] - b.x, mp[1] - b.z) < 7 && (b.cover || 0) < 3) { b.cover = (b.cover || 0) + 1; b.task = genWork(W, new Set()) || null; return; }
   }
-  if (st && st.id === 'sieste') b.ry = Math.PI;
+  if (st && st.id === 'sieste') b.ry = Math.PI; else if (st && st.seat !== undefined && t.type === 's') { b.ry = st.seat; b.x += (st.x - b.x) * 0.5; b.z += (st.z - b.z) * 0.5; } // assis : sur la cuvette, sur le banc
   if (st && st.place && t.type === 'w') {
     b.anim = 2; b.placeT = (b.placeT || 0.45) - dt; b.ry = st.shelf === 9 ? (b.x < 5 ? Math.PI / 2 : -Math.PI / 2) : SHELVES[st.shelf].kind === 'freezer' ? 0 : SHELVES[st.shelf].side > 0 ? -Math.PI / 2 : Math.PI / 2;
     if (b.placeT > 0) return; b.placeT = 0.45; b.placed = (b.placed || 0) + 1;
@@ -422,7 +422,7 @@ function botWorker(b, dt, role) {
     if (!ok || b.placed >= BOX_SIZE) { if (ok || b.placed > 1) H.stats[b.id][0]++; b.placed = 0; b.carry = 0; b.task = null; b.wait = rnd(0.4, 2); b.anim = 0; }
     return;
   }
-  b.anim = st && st.id === 'sieste' ? 4 : st && st.id === 'arcade' ? 5 : 2; b.work += dt;
+  b.anim = st && st.id === 'sieste' ? 4 : st && st.id === 'arcade' ? 5 : st && st.seat !== undefined ? 3 : 2; b.work += dt;
   const hold = (st ? stepHold(step) : step.hold) * (st?.mg ? 1.4 : 1);
   if (b.work < hold) return;
   b.work = 0;

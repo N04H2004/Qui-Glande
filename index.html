@@ -369,7 +369,7 @@ img.pt.sm{width:26px;height:26px;vertical-align:middle;margin-right:4px}
     <h3>😇 Les employés</h3>
     <ul><li><b>Mise en rayon façon Supermarket Simulator</b> : prends en réserve le carton du bon produit (ou une caisse en chambre froide), vise l'étagère et pose les produits un par un (clic ou E maintenu).</li><li>Le reste du magasin : caisses (mini-jeu scanner), clients perdus (quiz), téléphone, four à pain, boucherie, fruits, quai, caddies, poubelles, inventaire, affiches promo, fleurs… Faire une chose qui n'est pas demandée rapporte peu.</li><li>Ramassent ce qui traîne, nettoient les incidents et aident le directeur à repérer les comportements louches.</li></ul>
     <h3>😴 Les glandeurs</h3>
-    <ul><li>Sabotent en douce quand ils veulent (après chaque sabotage, quelques secondes de discrétion) : pyramide de conserves, lait renversé, micro-ondes, congélateur, four à fond, borne d'arcade, sieste, échantillons, fausse annonce au micro…</li><li>Et tout ce que la physique permet : vider un rayon par terre, bombarder les clients, laisser la chambre froide ouverte… tant que personne ne regarde. Ils connaissent leurs complices.</li></ul>
+    <ul><li>Sabotent en douce quand ils veulent (après chaque sabotage, quelques secondes de discrétion) : pyramide de conserves, lait renversé, micro-ondes, congélateur, four à fond, borne d'arcade, sieste, échantillons, fausse annonce au micro, téléphone aux toilettes, fort en cartons dans l'entrepôt, bain de soleil dans la cour… L'aile de service (couloir, vestiaires, toilettes, local technique, archives, entrepôt) est pleine de recoins : les caméras n'y voient pas partout.</li><li>Et tout ce que la physique permet : vider un rayon par terre, bombarder les clients, laisser la chambre froide ouverte… tant que personne ne regarde. Ils connaissent leurs complices.</li></ul>
     <h3>🏁 Victoire</h3>
     <ul><li><b>Employés :</b> productivité à 100 %, ou tous les glandeurs virés.</li><li><b>Glandeurs :</b> productivité à 0 %, ou autant de glandeurs que d'autres employés restants.</li><li>À la fin de la journée : plus de 50 % = employés, sinon glandeurs.</li></ul>
     <h3>🎮 Touches</h3>
@@ -471,20 +471,32 @@ const ZONES = [
   { id: 'bureau', name: 'Bureau du directeur', x0: 10, x1: 20, z0: -14, z1: -6, color: '#9fb5d9' },
   { id: 'parking', name: 'Parking', x0: -20.6, x1: 20.6, z0: 14, z1: 22.6, color: '#5d6168', outdoor: true },
   { id: 'quai', name: 'Quai de livraison', x0: -26.6, x1: -20, z0: -14, z1: -6.4, color: '#8f9298', outdoor: true },
+  // aile de service (au nord) : un couloir qui dessert de petites pièces, et une cour derrière le quai
+  { id: 'couloir', name: 'Couloir de service', x0: -20, x1: 20, z0: -16.6, z1: -14, color: '#d8d2c4' },
+  { id: 'vestiaires', name: 'Vestiaires', x0: -20, x1: -12, z0: -22, z1: -16.6, color: '#bfe0e8' },
+  { id: 'wc', name: 'Toilettes', x0: -12, x1: -5.5, z0: -22, z1: -16.6, color: '#d6eef0' },
+  { id: 'technique', name: 'Local technique', x0: -5.5, x1: 1.5, z0: -22, z1: -16.6, color: '#a9a39a' },
+  { id: 'archives', name: 'Archives', x0: 1.5, x1: 8.5, z0: -22, z1: -16.6, color: '#d9c9a8' },
+  { id: 'entrepot', name: 'Entrepôt', x0: 8.5, x1: 20, z0: -22, z1: -16.6, color: '#c4beb2' },
+  { id: 'cour', name: 'Cour de service', x0: -26.6, x1: -20, z0: -22, z1: -14, color: '#8f9298', outdoor: true },
 ];
 function zoneAt(x, z) { for (const zn of ZONES) if (x >= zn.x0 && x <= zn.x1 && z >= zn.z0 && z <= zn.z1) return zn; return null; }
-const insideStore = (x, z) => x > -20 && x < 20 && z > -14 && z < 14;
+const insideStore = (x, z) => x > -20 && x < 20 && z > -22 && z < 14;
 const PALMS = [[-17.5, 15.4], [-8, 15.4], [4, 15.4], [19.2, 15.6]];
 
 (function buildMap() {
-  hWall(-14, -20.15, 20.15);
+  hWall(-14, -20.15, 20.15, [[2.7, 4.3], [16.9, 18.5]]); // ancien mur du fond : on passe maintenant de la salle de pause et du bureau au couloir de service
   vWall(-20, -14, 14, [[-12, -9]]);
   vWall(20, -14, 14);
+  // aile de service
+  hWall(-22, -20.15, 20.15); vWall(-20, -22, -14, [[-16.45, -14.15]]); vWall(20, -22, -14);
+  hWall(-16.6, -20, 20, [[-15.95, -14.55], [-9.95, -8.55], [-0.95, 0.45], [3.55, 4.95], [11.6, 13.4], [18.2, 19.6]]); // portes de 1,4 m centrées sur la grille de navigation des bots
+  for (const x of [-12, -5.5, 1.5, 8.5]) vWall(x, -22, -16.6);
   hWall(14, -20.15, 20.15, [[10, 16]]);
   hWall(-6, -20, 20, [[-14, -10], [-3.5, -1.5], [2, 4], [18, 19.6]]);
   vWall(-6, -14, -6); vWall(1, -14, -6); vWall(10, -14, -6);
   hWall(22.6, -20.6, 20.6, [], 'inv'); vWall(-20.6, 14, 22.6, [], 'inv'); vWall(20.6, 14, 22.6, [], 'inv');
-  hWall(-14, -26.6, -20.15, [], 'inv'); hWall(-6.4, -26.6, -20, [], 'inv'); vWall(-26.6, -14, -6.4, [], 'inv');
+  hWall(-22, -26.6, -20.15, [], 'inv'); hWall(-6.4, -26.6, -20, [], 'inv'); vWall(-26.6, -22, -6.4, [], 'inv');
   // surface de vente
   GOND_X.forEach((x, i) => addBox(x - 0.6, x + 0.6, -3, 5, 2.1, 'fix', 'gondola', { i }));
   addBox(18.3, 20, -4, 6, 2.4, 'fix', 'fridge');
@@ -508,6 +520,7 @@ const PALMS = [[-17.5, 15.4], [-8, 15.4], [4, 15.4], [19.2, 15.6]];
   addBox(-19.6, -7, -13.85, -12.9, 3.0, 'fix', 'rack');
   addBox(-10.5, -7.5, -10.5, -8.6, 1.2, 'fix', 'pallet');
   addBox(-7.9, -6.6, -12.4, -11.3, 1.5, 'fix', 'roll');
+  addBox(-16.5, -12.5, -10.6, -9.8, 3.0, 'fix', 'rack2'); // rangée de racks au milieu de la réserve : on peut s'y cacher derrière
   // chambre froide
   addBox(-5.7, -3.6, -13.85, -11.5, 1.6, 'fix', 'crates');
   addBox(-1.3, 0.7, -13.85, -12.4, 0.5, 'fix', 'napcrates');
@@ -528,6 +541,36 @@ const PALMS = [[-17.5, 15.4], [-8, 15.4], [4, 15.4], [19.2, 15.6]];
   addBox(10.4, 11.3, -13.8, -12.9, 1.0, 'fix', 'safe');
   addBox(-19.85, -19.05, -1.2, 3.2, 2.2, 'fix', 'drinkfridge');
   addBox(-6.85, -6.15, -8.4, -7.0, 2.1, 'fix', 'closet');
+  // surface de vente : éléments hauts qui coupent les lignes de vue
+  addBox(14.6, 15.6, -3.4, 1.6, 2.1, 'fix', 'bazar'); // gondole bazar : l'allée du rayon frais devient un vrai couloir
+  addBox(9.6, 11.0, 1.9, 3.5, 2.2, 'fix', 'promostack'); // îlot de palettes promo entre la pyramide et la dégustation
+  // couloir de service
+  addBox(-3.6, -2.8, -16.42, -15.85, 1.0, 'fix', 'cleancart');
+  addBox(5.6, 6.8, -16.42, -15.6, 1.4, 'fix', 'pallet3');
+  // vestiaires
+  addBox(-19.7, -13.6, -21.85, -21.3, 2.0, 'fix', 'lockers2');
+  addBox(-18.2, -15.4, -19.5, -18.7, 2.0, 'fix', 'lockers3');
+  addBox(-17.8, -15.8, -18.25, -17.85, 0.45, 'fix', 'bench');
+  addBox(-13.5, -13.44, -21.85, -20.1, 2.1, 'fix', 'showerwall');
+  // toilettes : trois cabines (cloisons), lavabos contre le mur est
+  for (const x of [-10.25, -8.65, -7.05]) addBox(x - 0.03, x + 0.03, -21.85, -20.0, 2.0, 'fix', 'stall');
+  addBox(-6.25, -5.65, -20.8, -18.0, 0.9, 'fix', 'sinks');
+  // local technique
+  addBox(-5.2, -3.9, -21.85, -20.5, 2.6, 'fix', 'boiler');
+  addBox(-3.5, -2.6, -21.85, -21.0, 2.2, 'fix', 'heater');
+  addBox(-1.8, 0.4, -21.85, -21.4, 2.2, 'fix', 'elec');
+  addBox(-3.2, -2.4, -19.6, -17.6, 2.0, 'fix', 'metalshelf');
+  addBox(0.3, 1.2, -19.2, -18.2, 1.0, 'fix', 'pump');
+  // archives
+  addBox(1.65, 6.4, -21.85, -21.35, 2.3, 'fix', 'archshelf');
+  addBox(3.2, 8.35, -19.9, -19.4, 2.3, 'fix', 'archshelf');
+  addBox(6.7, 8.2, -18.1, -17.3, 0.8, 'fix', 'archdesk');
+  // entrepôt : allées de racks
+  for (const x of [10.6, 13.6, 16.6]) addBox(x, x + 0.8, -21.85, -18.6, 3.2, 'fix', 'rack3');
+  addBox(8.9, 9.9, -18.3, -17.0, 1.6, 'fix', 'forklift');
+  // cour de service
+  addBox(-26.3, -24.3, -16.2, -14.5, 1.8, 'fix', 'compactor');
+  addBox(-22.2, -20.4, -21.8, -20.4, 1.5, 'fix', 'pallets');
   // quai & parking
   addBox(-26.4, -24, -13.6, -7.6, 3.2, 'fix', 'truck');
   addBox(-14, -10, 19.5, 21, 1.0, 'fix', 'abri');
@@ -571,6 +614,9 @@ S('micro', 5.4, 9.6, 'Faire une fausse annonce au micro', 's', 2, { dmg: 2, mg: 
 S('arcade', 8.0, -7.1, "Jouer à la borne d'arcade", 's', 6, { dmg: 3.5, short: 'Salle de pause' });
 S('microondes', 5.8, -12.45, 'Faire exploser un plat au micro-ondes', 's', 2, { dmg: 2.5, short: 'Salle de pause' });
 S('congel', 6.25, -1.8, 'Débrancher le congélateur', 's', 2.5, { dmg: 3, short: 'Surgelés' });
+S('wc', -9.45, -21.2, 'Glander sur son téléphone aux toilettes', 's', 6, { dmg: 3.5, short: 'Toilettes', seat: 0 });
+S('fort', 15.5, -21.0, 'Construire un fort en cartons', 's', 5, { dmg: 3, short: 'Entrepôt' });
+S('cour', -23.5, -20.9, 'Prendre le soleil sur le banc', 's', 6, { dmg: 3, short: 'Cour de service', seat: 0 });
 S('four', 15.5, -4.05, 'Four à pain', 'e', 2, { short: 'Boulangerie' });
 S('tel', 2.9, 9.6, 'Répondre au téléphone', 'e', 2, { gain: 2, short: 'Accueil' });
 S('cafe', 9.15, -12.35, 'Pause café', 'p', 4, { mg: 'timing', short: 'Salle de pause' });
@@ -589,7 +635,7 @@ const JOBS = [
   { id: 'promo', st: ['promo0', 'promo1', 'promo2', 'promo3'], rate: 1 / 135, txt: 'Affiches promo à renouveler (imprimante du bureau)', icon: '🖨️' },
 ];
 JOBS.forEach((j, k) => j.st.forEach((id) => (ST[id].job = k)));
-const SAB_IDS = ['pyramide', 'lait', 'sieste', 'echant', 'micro', 'arcade', 'microondes', 'congel', 'four'];
+const SAB_IDS = ['pyramide', 'lait', 'sieste', 'echant', 'micro', 'arcade', 'microondes', 'congel', 'four', 'wc', 'fort', 'cour'];
 function sabValid(id, G) {
   const ms = G?.ms || []; const has = (t) => ms.some((m) => m[1] === t);
   if (id === 'pyramide') return !G?.py; if (id === 'lait') return ms.filter((m) => m[1] === 'lait').length < TUNE.maxPuddles;
@@ -605,12 +651,12 @@ const MESS = {
   melt: { clean: 'Rebrancher le congélateur', hold: 2, name: 'Congélateur débranché', icon: '🧊' },
   burn: { clean: 'Jeter le pain brûlé', hold: 3, name: 'Pain brûlé (four)', icon: '🔥' },
 };
-const PUDDLES = [[-11.5, -1], [-6.5, 3], [-1.5, -2], [3.0, 4.4], [15, -2.2], [16, 2.4], [7.6, 6.6], [-16.6, 6]];
+const PUDDLES = [[-11.5, -1], [-6.5, 3], [-1.5, -2], [3.0, 4.4], [16.9, -1.0], [16, 2.4], [7.6, 6.6], [-16.6, 6]];
 const SEATS = [[4.8, -11.8], [6, -11.8], [7.2, -11.8], [4.8, -8.6], [6, -8.6], [7.2, -8.6], [3.8, -10.6], [3.8, -9.8], [8.2, -10.6], [8.2, -9.8], [3.8, -11.6], [8.2, -11.6]];
 const TABLE_C = [6, -10.2];
 const SPAWNS = []; for (let i = 0; i < 12; i++) SPAWNS.push([-16 + (i % 6) * 2.6, 6.6 + Math.floor(i / 6) * 1.3]);
-const PATROL = [[-11.5, 0], [-6.5, 1], [-1.5, 0], [3, 0], [7, -1], [10, 1], [15, 1.5], [-8, 7.4], [4, 7.4], [-13, -9.5], [-2.5, -9], [6, -7.6], [14, -9.5], [0, 17], [-22.5, -10.5], [12, -3]];
-const BROWSE = [[-16.6, -1], [-16.6, 3], [-11.5, -1.5], [-11.5, 3], [-6.5, -1.5], [-6.5, 3], [-1.5, -1.5], [-1.5, 3], [3, -2], [3, 2.5], [6.6, 4.4], [10.5, 1.5], [16, -1], [16.2, 3], [14.5, 7.4], [9, -3.4], [13.2, -3.3], [17.2, 0.5], [8.6, 7.8]];
+const PATROL = [[-11.5, 0], [-6.5, 1], [-1.5, 0], [3, 0], [7, -1], [10, 1], [15.1, 2.6], [-8, 7.4], [4, 7.4], [-13, -8.7], [-2.5, -9], [6, -7.6], [14, -9.5], [0, 17], [-22.5, -10.5], [12, -3], [-8, -15.3], [12, -15.3], [-16.8, -20.2], [15.5, -19.5], [-23, -18]];
+const BROWSE = [[-16.6, -1], [-16.6, 3], [-11.5, -1.5], [-11.5, 3], [-6.5, -1.5], [-6.5, 3], [-1.5, -1.5], [-1.5, 3], [3, -2], [3, 2.5], [6.6, 4.4], [10.6, 0.9], [16.95, -1.6], [16.2, 3], [14.5, 7.4], [9, -3.4], [13.2, -3.3], [17.2, 0.5], [8.6, 7.8], [14.0, -1.9], [12.0, 2.6]];
 const CUST_DOOR = [13, 16.5];
 const queueSpot = (k, pos) => [CHECKOUTS[k] - 1.0, 9.6 - pos * 0.85];
 const CAMS = [
@@ -622,6 +668,9 @@ const CAMS = [
   { name: 'CAM 6 — Salle de pause', p: [1.4, 3.6, -6.5], t: [7, 0, -11] },
   { name: 'CAM 7 — Parking', p: [19.5, 5, 22.3], t: [-4, 0, 16] },
   { name: 'CAM 8 — Quai', p: [-20.6, 4.5, -6.8], t: [-23, 0, -11] },
+  { name: 'CAM 9 — Couloir de service', p: [19.6, 3.5, -14.45], t: [-6, 0, -15.6] },
+  { name: 'CAM 10 — Entrepôt', p: [19.6, 3.7, -16.95], t: [11, 0, -20.5] },
+  { name: 'CAM 11 — Cour de service', p: [-20.5, 4.2, -21.5], t: [-24, 0, -15.5] },
 ];
 
 // ---------- Étagères à emplacements (façon Supermarket Simulator) ----------
@@ -674,6 +723,8 @@ CHECKOUTS.forEach((c, i) => OP({ type: 'drawer', name: 'le tiroir-caisse ' + (i 
 for (let i = 0; i < 2; i++) OP({ type: 'drawer', name: "le tiroir de l'accueil", base: [3.6 + i * 1.3, 0.8, 10.4], n: [0, -1], d: 0.35, w: 0.6, hgt: 0.2, dp: 0.5, col: '#178f81', acc: i });
 OP({ type: 'cab', name: "l'armoire à balais", aim: [-6.9, 1.2, -7.7], leaves: [{ h: [-6.87, -8.4], ry0: -HP, ry1: -Math.PI - 0.3, w: 0.7, hgt: 2.0, y0: 0.05, th: 0.04, col: '#7a8796' }, { h: [-6.87, -7.0], ry0: HP, ry1: Math.PI + 0.3, w: 0.7, hgt: 2.0, y0: 0.05, th: 0.04, col: '#7a8796' }], closet: 1 });
 for (let k = 0; k < 3; k++) { const z0 = -1.1 + k * 1.45; OP({ type: 'cab', name: 'la vitrine à boissons', aim: [-19.0, 1.15, z0 + 0.72], leaves: [{ h: [-19.03, z0], ry0: -HP, ry1: 0.2, w: 1.42, hgt: 1.92, y0: 0.14, th: 0.05, col: '#d7e3ee', glass: 1 }], fridge: k }); }
+for (const [nm, x0, col, win] of [['la porte des vestiaires', -15.95, '#7fb0c9', 1], ['la porte des toilettes', -9.95, '#cfe3ea', 0], ['la porte du local technique', -0.95, '#8a929c', 0], ['la porte des archives', 3.55, '#c58b4f', 1]])
+  OP({ type: 'door', name: nm, aim: [x0 + 0.7, 1.3, -16.6], box: [x0, x0 + 1.4, -16.67, -16.53], leaves: [{ h: [x0, -16.6], ry0: 0, ry1: HP, w: 1.4, hgt: 2.85, th: 0.07, col, win }] });
 const OPEN_COLD = OPEN.findIndex((o) => o.cold);
 const OPEN_WORDS = Math.ceil(OPEN.length / 30);
 const opGet = (op, i) => !!(((op?.[(i / 30) | 0] || 0) >>> i % 30) & 1);
@@ -707,7 +758,7 @@ function itemStep(it, dt) {
     if (ny - hh <= 0) { ny = hh; it.vy = it.vy < -2.5 ? -it.vy * 0.28 : 0; ground = true; }
     if (ground && it.s === 2) { it.s = it.tumble ? 1 : 0; const nh = itemHH(it, it.s === 1); ny += nh - hh; it.hh = nh; }
     if (ground) { const f = Math.max(0, 1 - 8 * h); it.vx *= f; it.vz *= f; it.vr *= f; }
-    it.x = clamp(nx, -26.5, 20.5); it.y = ny; it.z = clamp(nz, -13.9, 22.5); it.ry += it.vr * h;
+    it.x = clamp(nx, -26.5, 20.5); it.y = ny; it.z = clamp(nz, -21.9, 22.5); it.ry += it.vr * h;
     if (ground && Math.hypot(it.vx, it.vz) < 0.15 && Math.abs(it.vy) < 0.01) { it.rt = (it.rt || 0) + h; if (it.rt > 0.2) { it.rest = true; it.vx = it.vy = it.vz = it.vr = 0; return; } } else it.rt = 0;
   }
 }
@@ -728,7 +779,7 @@ function collide(x, z, r = 0.35) {
 }
 
 // ---------- Navigation (A* sur grille) ----------
-const NAV = { x0: -27, z0: -14.5, cs: 0.5, w: 0, h: 0, g: null };
+const NAV = { x0: -27, z0: -22.5, cs: 0.5, w: 0, h: 0, g: null };
 function buildNav() {
   NAV.w = Math.ceil((21 - NAV.x0) / NAV.cs); NAV.h = Math.ceil((23 - NAV.z0) / NAV.cs);
   NAV.g = new Uint8Array(NAV.w * NAV.h); const r = 0.42;
@@ -790,7 +841,7 @@ function genSab(W, ex) {
   if (W.messes.filter((m) => m[1] === 'lait').length < TUNE.maxPuddles && !ex.has('lait')) o.push({ w: 1, f: () => mkTask('s', [{ st: 'lait' }], ST.lait.label, '🥛') });
   { const i = rndi(0, 7); if (!ex.has('rayon' + i)) o.push({ w: 1.0, f: () => mkTask('s', [{ st: 'rayon' + i, sab: 'jet' }], 'Jeter des produits par terre : ' + SHELF_NAMES[i], '💥') }); }
   if (W.op && !opGet(W.op, OPEN_COLD)) o.push({ w: 0.6, f: () => mkTask('s', [{ x: -2.5, z: -5.25, hold: 1.2, door: OPEN_COLD }], 'Laisser la chambre froide ouverte', '🚪') });
-  for (const [id, ic] of [['sieste', '💤'], ['echant', '🧀'], ['micro', '📢'], ['arcade', '🕹️']]) if (!ex.has(id)) o.push({ w: 0.9, f: () => mkTask('s', [{ st: id }], ST[id].label, ic) });
+  for (const [id, ic] of [['sieste', '💤'], ['echant', '🧀'], ['micro', '📢'], ['arcade', '🕹️'], ['wc', '📱'], ['fort', '📦'], ['cour', '☀️']]) if (!ex.has(id)) o.push({ w: 0.9, f: () => mkTask('s', [{ st: id }], ST[id].label, ic) });
   if (!ex.has('microondes') && !hasMess(W, 'smoke')) o.push({ w: 0.9, f: () => mkTask('s', [{ st: 'microondes' }], ST.microondes.label, '💥') });
   if (!ex.has('congel') && !hasMess(W, 'melt')) o.push({ w: 0.9, f: () => mkTask('s', [{ st: 'congel' }], ST.congel.label, '🔌') });
   if (!ex.has('four') && (W.ov?.[0] ?? 0) !== 3) o.push({ w: 0.8, f: () => mkTask('s', [{ st: 'four', sab: 'four' }], 'Monter le four à fond', '🔥') });
@@ -867,7 +918,7 @@ function gfxAdapt(dt) {
 }
 // ombre du soleil : la scène extérieure est presque statique, on ne la recalcule que de temps en temps (ou souvent si quelqu'un est dehors)
 function lightTick() {
-  GFX.frame++; const q = GFX.q; let out = !insideStore(camera.position.x, camera.position.z);
+  wingCull(); GFX.frame++; const q = GFX.q; let out = !insideStore(camera.position.x, camera.position.z);
   if (!out) for (const a of AV.values()) if (!insideStore(a.x, a.z)) { out = true; break; }
   if (GFX.frame < 6 || GFX.frame % (out ? q.sunOut : q.sunEvery) === 0) LIGHTS.sun.shadow.needsUpdate = true;
 }
@@ -1053,8 +1104,8 @@ function initRenderer() {
   const sun = (LIGHTS.sun = new THREE.DirectionalLight('#ffc084', 5.2)); sun.target.position.set(-2, 0, 4); sun.position.copy(sun.target.position).addScaledVector(SUN_DIR, 75); scene.add(sun, sun.target);
   sun.castShadow = true; sun.shadow.mapSize.set(GFX.q.sunShadow, GFX.q.sunShadow); const sc = sun.shadow.camera; sc.left = -42; sc.right = 42; sc.top = 38; sc.bottom = -38; sc.near = 15; sc.far = 150; sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.07; sun.shadow.radius = 1.6; sun.shadow.autoUpdate = false; sun.shadow.needsUpdate = true;
   // néons : lumière froide qui tombe du plafond. Sa carte d'ombre démarre juste sous le plafond et ne couvre que l'intérieur ; dehors, elle sert de lumière de ciel.
-  const neon = (LIGHTS.neon = new THREE.DirectionalLight('#e6f0ff', 1.5)); neon.position.set(0, 13.86, 0); neon.target.position.set(0, 0, 0); scene.add(neon, neon.target);
-  neon.castShadow = GFX.q.neonShadow > 0; neon.shadow.mapSize.set(GFX.q.neonShadow || 1024, GFX.q.neonShadow || 1024); const nc = neon.shadow.camera; nc.left = -20.6; nc.right = 20.6; nc.top = 14.6; nc.bottom = -14.6; nc.near = 10; nc.far = 14.2; neon.shadow.bias = -0.0012; neon.shadow.normalBias = 0.025; neon.shadow.radius = 1.3;
+  const neon = (LIGHTS.neon = new THREE.DirectionalLight('#e6f0ff', 1.5)); neon.position.set(0, 13.86, -4); neon.target.position.set(0, 0, -4); scene.add(neon, neon.target);
+  neon.castShadow = GFX.q.neonShadow > 0; neon.shadow.mapSize.set(GFX.q.neonShadow || 1024, GFX.q.neonShadow || 1024); const nc = neon.shadow.camera; nc.left = -20.6; nc.right = 20.6; nc.top = 18.6; nc.bottom = -18.6; nc.near = 10; nc.far = 14.2; neon.shadow.bias = -0.0012; neon.shadow.normalBias = 0.025; neon.shadow.radius = 1.3;
   buildSky();
   addEventListener('resize', onResize);
 }
@@ -1306,28 +1357,32 @@ function buildWorld() {
   makeTextures();
   MAT_ZONE = 'out';
   const big = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), new THREE.MeshStandardMaterial({ map: TEX.grass, roughness: 1, metalness: 0, envMap: ENV.out })); big.rotation.x = -Math.PI / 2; big.position.y = -0.03; big.receiveShadow = true; scene.add(big);
-  floor(-24, 24, 14, 26.5, TEX.asphalt, null, -0.005, { rough: 0.95, out: true }); floor(-30, -20, -15, -5.5, TEX.concrete, '#d8d8d8', -0.004, { rough: 0.9, out: true });
+  floor(-24, 24, 14, 26.5, TEX.asphalt, null, -0.005, { rough: 0.95, out: true }); floor(-30, -20, -23, -5.5, texRep(TEX.concrete, 10, 17.5, 2.5), '#d8d8d8', -0.004, { rough: 0.9, out: true });
   MAT_ZONE = 'in';
   floor(-20, 20, -6, 14, TEX.tiles, null, 0.002, { rough: 1, rmap: TEX.tilesR, refl: true }); floor(-20, -6, -14, -6, TEX.concrete, null, 0.002, { rough: 0.86 }); floor(-6, 1, -14, -6, TEX.ice, null, 0.002, { rough: 0.2, refl: true }); floor(1, 10, -14, -6, TEX.wood, null, 0.002, { rough: 0.45, refl: true }); floor(10, 20, -14, -6, TEX.carpet, null, 0.002, { rough: 1 });
-  buildStructure(); MAT_ZONE = 'out'; buildOutdoor(); MAT_ZONE = 'in'; buildSales(); buildBackRooms(); buildBunting(); buildProps(); buildDecor(); buildAO();
+  buildStructure(); MAT_ZONE = 'out'; buildOutdoor(); MAT_ZONE = 'in'; buildSales(); buildBackRooms(); buildWing(); buildBunting(); buildProps(); buildDecor(); buildAO();
 }
 function buildStructure() {
   // murs crème + soubassement turquoise + liseré orange
   for (const b of BOXES) if (b.kind === 'wall') {
     const w = b.x1 - b.x0, d = b.z1 - b.z0, cx = (b.x0 + b.x1) / 2, cz = (b.z0 + b.z1) / 2;
-    mbox(w, b.h, d, '#fff1d6', cx, b.h / 2, cz);
-    mbox(w + 0.04, 1.05, d + 0.04, '#1fb5a3', cx, 0.525, cz, { ol: false });
-    mbox(w + 0.06, 0.12, d + 0.06, '#ff8a3d', cx, 1.1, cz, { ol: false });
+    mbox(w, b.h, d, '#fff1d6', cx, b.h / 2, cz).userData.keep = 1;
+    mbox(w + 0.04, 1.05, d + 0.04, '#1fb5a3', cx, 0.525, cz, { ol: false }).userData.keep = 1;
+    mbox(w + 0.06, 0.12, d + 0.06, '#ff8a3d', cx, 1.1, cz, { ol: false }).userData.keep = 1;
   }
-  for (const d of DOORS) mbox(d.x1 - d.x0, 1.1, d.z1 - d.z0, '#fff1d6', (d.x0 + d.x1) / 2, 3.45, (d.z0 + d.z1) / 2);
+  for (const d of DOORS) mbox(d.x1 - d.x0, 1.1, d.z1 - d.z0, '#fff1d6', (d.x0 + d.x1) / 2, 3.45, (d.z0 + d.z1) / 2).userData.keep = 1;
   // toit (il porte l'ombre du soleil sur l'intérieur) + faux plafond à dalles + poutres
-  mbox(40.6, 0.24, 28.6, '#fff1d6', 0, 4.14, 0, { recv: false, ol: false });
-  const ceil = new THREE.Mesh(new THREE.PlaneGeometry(40, 28), new THREE.MeshBasicMaterial({ map: TEX.ceil })); ceil.rotation.x = Math.PI / 2; ceil.position.set(0, 4.0, 0); scene.add(ceil);
+  mbox(40.6, 0.24, 36.6, '#fff1d6', 0, 4.14, -4, { recv: false, ol: false });
+  const ceil = new THREE.Mesh(new THREE.PlaneGeometry(40, 36), new THREE.MeshBasicMaterial({ map: texRep(TEX.ceil, 40, 36, 40 / 17, 28 / 12) })); ceil.rotation.x = Math.PI / 2; ceil.position.set(0, 4.0, -4); scene.add(ceil);
   for (let x = -17; x <= 17; x += 6.8) mbox(0.25, 0.25, 20, null, x, 3.88, 4, { mat: basic('#ddd2bd'), cast: false, recv: false, ol: false });
   // luminaires : caisson + deux tubes néon légèrement bleutés (le bloom les fait rayonner)
   const fixture = (x, z, len = 2.4, tube = NEON, rot = 0) => { const ry = rot ? Math.PI / 2 : 0; mbox(len + 0.2, 0.07, 0.4, '#e9edf1', x, 3.945, z, { cast: false, recv: false, ol: false, ry }); for (const s of [-1, 1]) mbox(len, 0.05, 0.085, null, x + (rot ? s * 0.1 : 0), 3.895, z + (rot ? 0 : s * 0.1), { mat: tube, cast: false, recv: false, ol: false, r: 0, ry }); };
   for (let x = -16; x <= 16; x += 5.3) for (let z = -3; z <= 12; z += 4.5) fixture(x, z);
-  fixture(-16.5, -10, 2.4, NEON_FLICK, 1); // néon fatigué de la réserve : il grésille (voir 26_decor.js) fixture(-10, -10, 2.4, NEON, 1); fixture(-2.5, -10, 2.2, NEON_COLD, 1); fixture(15, -9.2, 2.4, NEON);
+  fixture(-16.5, -10, 2.4, NEON_FLICK, 1); // néon fatigué de la réserve : il grésille (voir 26_decor.js)
+  fixture(-10, -10, 2.4, NEON, 1); fixture(-2.5, -10, 2.2, NEON_COLD, 1); fixture(15, -9.2, 2.4, NEON); // (ces trois-là étaient restés dans le commentaire au-dessus)
+  // aile de service
+  for (const x of [-15, -5, 5, 15]) fixture(x, -15.3, 2.4);
+  fixture(-16.2, -19.4); fixture(-8.75, -19.0, 2.2, NEON_COLD); fixture(-1.5, -19.4, 2.0, NEON_FLICK); fixture(5, -18.6); for (const x of [12.5, 15.5, 18.6]) fixture(x, -19.6, 2.4, NEON, 1);
   for (const x of [4.9, 7.1]) { mcyl(0.012, 1.3, '#2a2135', x, 3.35, -10.2, { cast: false, ol: false }); mcone(0.34, 0.28, '#ff8a3d', x, 2.62, -10.2, { cast: false }); msph(0.1, null, x, 2.5, -10.2, { mat: BULB, cast: false, recv: false, ol: false }); }
   // façade (extérieur : reflète le ciel)
   MAT_ZONE = 'out';
@@ -1351,8 +1406,8 @@ function buildOutdoor() {
   for (let i = 0; i < 14; i++) { const a = (i / 14) * Math.PI * 2; const d = rnd(95, 115); const hgt = rnd(10, 22); const m = mcone(rnd(14, 24), hgt, pick(['#7cc96a', '#6dbb5c', '#8fd27a']), Math.cos(a) * d, hgt / 2 - 0.5, Math.sin(a) * d, { cast: false, ol: false }); m.rotation.y = rnd(0, 3); }
   for (let i = 0; i < 12; i++) { const x = rnd(-70, 70), z = rnd(-70, 60), y = rnd(22, 32); for (let k = 0; k < 4; k++) msph(rnd(2, 3.4), '#ffffff', x + k * 2.4, y + rnd(-0.5, 0.6), z + rnd(-1, 1), { geo: ICO0, mat: CLOUD, cast: false, ol: false }); }
   for (let x = -28; x <= 28; x += 4.6) tree(x + rnd(-0.8, 0.8), 29 + rnd(-0.6, 0.6), rnd(0.9, 1.3));
-  for (let z = -18; z <= 24; z += 5) { tree(-30 + rnd(-1, 1), z, rnd(0.9, 1.2)); tree(25 + rnd(-1, 1), z, rnd(0.9, 1.2)); }
-  for (let x = -16; x <= 16; x += 6.5) tree(x + rnd(-1, 1), -17.5, rnd(0.9, 1.2));
+  for (let z = -26; z <= 24; z += 5) { tree(-30 + rnd(-1, 1), z, rnd(0.9, 1.2)); tree(25 + rnd(-1, 1), z, rnd(0.9, 1.2)); }
+  for (let x = -16; x <= 16; x += 6.5) tree(x + rnd(-1, 1), -26, rnd(0.9, 1.2));
   for (const [x, z] of PALMS) palm(x, z);
   // parking
   for (let x = -18; x <= 19; x += 2.8) if (Math.abs(x + 12) > 2.6 && Math.abs(x + 18.6) > 1.6) decal(0.12, 3.6, '#ffffff', x, 20.4);
@@ -1523,7 +1578,7 @@ function buildBackRooms() {
   mbox(1.3, 2, 0.65, '#ff5a5f', 1.95, 1, -13.52); mbox(0.9, 1.3, 0.04, null, 1.85, 1.15, -13.18, { mat: basic('#ffe9b0'), ol: false });
   mbox(1, 0.45, 3, '#5b6ee1', 1.7, 0.22, -9.9); mbox(0.3, 0.8, 3, '#4a5bc4', 1.35, 0.6, -9.9); for (const z of [-11.3, -8.5]) mbox(1, 0.6, 0.25, '#4a5bc4', 1.7, 0.35, z);
   mbox(1, 1.9, 1.2, '#9b6bff', 9.2, 0.95, -7.1); mbox(0.05, 0.7, 0.9, null, 8.68, 1.4, -7.1, { mat: basic('#33ffcc'), ol: false }); mbox(0.3, 0.1, 0.9, '#2a2135', 8.6, 0.95, -7.1); msph(0.05, '#ff5a5f', 8.55, 1.03, -7.25, { geo: ICO0 }); sign('ARCADE', 1, 0.3, 8.69, 1.95, -7.1, -Math.PI / 2, { bg: '#ffd23f', fg: '#2a2135' });
-  sign('EMPLOYÉ DU MOIS : personne', 2.6, 0.5, 4.5, 2.4, -13.83, 0, { bg: '#ffc83d', fg: '#2a2135' });
+  sign('EMPLOYÉ DU MOIS : personne', 2.6, 0.5, 7.4, 2.4, -13.83, 0, { bg: '#ffc83d', fg: '#2a2135' });
   sign('SALLE DE PAUSE', 3, 0.55, 3, 3.3, -5.82, 0, { bg: '#c58b4f' });
   // bureau
   mbox(4, 0.09, 1, '#5b3d22', 14.6, 0.78, -12.7); for (const [x, z] of [[12.7, -13.1], [16.5, -13.1], [12.7, -12.3], [16.5, -12.3]]) mbox(0.08, 0.76, 0.08, '#3b2816', x, 0.38, z);
@@ -1532,8 +1587,8 @@ function buildBackRooms() {
   for (let z = -13.4; z < -9.4; z += 1.1) mbox(0.85, 1.35, 1.0, '#a9b2bc', 19.35, 0.67, z); // (la boucle d'origine ne s'exécutait jamais : les classeurs n'avaient pas de caisson)
   mbox(1, 1.1, 1, '#e9edf1', 10.9, 0.55, -8.7); mbox(0.7, 0.12, 0.6, '#3d4454', 10.9, 1.16, -8.7); mbox(0.5, 0.02, 0.4, '#ffffff', 11.2, 1.05, -8.7);
   mcyl(0.25, 0.5, '#c0663a', 10.7, 0.25, -6.6, { geo: CYL6 }); msph(0.5, '#4fae3f', 10.7, 0.95, -6.6, { geo: ICO0 });
-  mbox(3, 1.6, 0.06, '#ffffff', 16.5, 2.0, -13.84); sign('PLANNING  ✔ ✘ ✔ ✔ ✘', 2.6, 0.4, 16.5, 2.5, -13.8, 0, { bg: null, fg: '#2d7dd2' });
-  sign('OBJECTIF : 100 %', 2.4, 0.5, 13.5, 2.5, -13.83, 0, { bg: '#ffffff', fg: '#2a2135' });
+  mbox(3, 1.6, 0.06, '#ffffff', 13.6, 2.0, -13.84); sign('PLANNING  ✔ ✘ ✔ ✔ ✘', 2.6, 0.4, 13.6, 2.5, -13.8, 0, { bg: null, fg: '#2d7dd2' });
+  sign('OBJECTIF : 100 %', 2.4, 0.5, 13.6, 3.25, -13.83, 0, { bg: '#ffffff', fg: '#2a2135' });
   sign('DIRECTION', 2.6, 0.55, 18.8, 3.3, -5.82, 0, { bg: '#ffc83d', fg: '#2a2135' });
 }
 function buildBunting() {
@@ -1556,9 +1611,10 @@ function mergeStatic() {
   for (const o of [...scene.children]) {
     if (!o.isMesh || o.isInstancedMesh || o.children.length || o.userData.dyn) continue; const m = o.material;
     if (!m || m.transparent || m.map || m.side === THREE.BackSide || !(m.isMeshStandardMaterial || m.isMeshBasicMaterial)) continue;
-    const key = m.uuid + '|' + o.castShadow + '|' + o.receiveShadow + '|' + !!o.userData.noOL; if (!groups.has(key)) groups.set(key, []); groups.get(key).push(o);
+    const w = inWing(o) ? 1 : 0; // le mobilier de l'aile de service est fusionné à part, pour pouvoir le masquer quand on n'y est pas
+    const key = m.uuid + '|' + o.castShadow + '|' + o.receiveShadow + '|' + !!o.userData.noOL + '|' + w; if (!groups.has(key)) { groups.set(key, []); groups.get(key).w = w; } groups.get(key).push(o);
   }
-  const v = new THREE.Vector3(), nm = new THREE.Matrix3(); let merged = 0; const olGeos = [];
+  const v = new THREE.Vector3(), nm = new THREE.Matrix3(); let merged = 0; const olGeos = [], olGeosW = [];
   for (const list of groups.values()) {
     let vc = 0, ic = 0; for (const m of list) { const g = m.geometry; vc += g.attributes.position.count; ic += g.index ? g.index.count : g.attributes.position.count; }
     const pos = new Float32Array(vc * 3), nor = new Float32Array(vc * 3), idx = new Uint32Array(ic); let vo = 0, io = 0;
@@ -1567,18 +1623,20 @@ function mergeStatic() {
       for (let i = 0; i < P.count; i++) { v.fromBufferAttribute(P, i).applyMatrix4(m.matrixWorld); pos[(vo + i) * 3] = v.x; pos[(vo + i) * 3 + 1] = v.y; pos[(vo + i) * 3 + 2] = v.z; if (N) { v.fromBufferAttribute(N, i).applyMatrix3(nm).normalize(); nor[(vo + i) * 3] = v.x; nor[(vo + i) * 3 + 1] = v.y; nor[(vo + i) * 3 + 2] = v.z; } }
       if (g.index) for (let i = 0; i < g.index.count; i++) idx[io + i] = g.index.getX(i) + vo; else for (let i = 0; i < P.count; i++) idx[io + i] = vo + i;
       vo += P.count; io += g.index ? g.index.count : P.count; scene.remove(m); merged++;
-      if (!m.userData.noOL && m.material.isMeshStandardMaterial) { const wg = g.clone(); wg.applyMatrix4(m.matrixWorld); wg.computeBoundingBox(); const sz = wg.boundingBox.getSize(v); const mn = Math.min(sz.x, sz.y, sz.z); olGeos.push(outlineGeo(wg, clamp(mn * 0.12, 0.008, 0.03))); wg.dispose(); }
+      if (!m.userData.noOL && m.material.isMeshStandardMaterial) { const wg = g.clone(); wg.applyMatrix4(m.matrixWorld); wg.computeBoundingBox(); const sz = wg.boundingBox.getSize(v); const mn = Math.min(sz.x, sz.y, sz.z); (list.w ? olGeosW : olGeos).push(outlineGeo(wg, clamp(mn * 0.12, 0.008, 0.03))); wg.dispose(); }
     }
     const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('normal', new THREE.BufferAttribute(nor, 3)); geo.setIndex(new THREE.BufferAttribute(idx, 1)); geo.computeBoundingSphere();
-    const mesh = new THREE.Mesh(geo, list[0].material); mesh.castShadow = list[0].castShadow; mesh.receiveShadow = list[0].receiveShadow; scene.add(mesh);
+    const mesh = new THREE.Mesh(geo, list[0].material); mesh.castShadow = list[0].castShadow; mesh.receiveShadow = list[0].receiveShadow; scene.add(mesh); if (list.w) WING.cull.push(mesh);
   }
-  return merged + olMerge(olGeos);
+  olMerge(olGeos); const olw = olMerge(olGeosW); if (olw) WING.cull.push(olw);
+  for (const o of scene.children) if (!o.userData.dyn && !o.userData.wing && !WING.cull.includes(o) && inWing(o)) WING.cull.push(o); // panneaux, groupes, objets texturés
+  return merged;
 }
 function olMerge(list) {
   let n = 0; for (const g of list) n += g.attributes.position.count; if (!n) return 0;
   const pos = new Float32Array(n * 3); let o = 0; for (const g of list) { pos.set(g.attributes.position.array, o); o += g.attributes.position.count * 3; g.dispose(); }
   const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.computeBoundingSphere();
-  scene.add(new THREE.Mesh(geo, OUTLINE_MAT)); return 0;
+  const m = new THREE.Mesh(geo, OUTLINE_MAT); scene.add(m); return m;
 }
 
 // ---------- état dynamique ----------
@@ -1725,7 +1783,7 @@ function syncWorld(Gs) {
   for (const o of WORLD.messes.values()) if (o && o.userData.a < 1) { const a = (o.userData.a = Math.min(1, o.userData.a + dt / 0.5)), e = easeOutBack(a); if (o.userData.flat) o.scale.set(e, Math.min(1, a * 3), e); else o.scale.setScalar(e); }
   for (let i = WORLD.dying.length - 1; i >= 0; i--) { const d = WORLD.dying[i]; d.t += dt / 0.28; if (d.t >= 1) { scene.remove(d.o); WORLD.dying.splice(i, 1); } else d.o.scale.setScalar(1 - d.t); }
   if (Gs) fxWorld(Gs, dt);
-  decorTick(dt, Gs);
+  decorTick(dt, Gs); wingTick(dt);
   // four, micro-ondes, téléphone
   const t = WORLD.clock;
   const ov = Gs?.ov?.[0] ?? 0; const wc = WORLD.ovenWin.material.color;
@@ -2377,6 +2435,183 @@ function decorTick(dt, G) {
   DECOR.scrT -= dt; if (DECOR.scrT <= 0) { DECOR.scrT = 0.25; drawScreens(G, 0.25); }
 }
 
+// ======================= AILE DE SERVICE + RECOINS (visuel ; les collisions et les zones sont dans 10_core.js) =======================
+// Couloir de service derrière les pièces du fond, vestiaires, toilettes, local technique, archives, entrepôt, cour extérieure.
+// En surface de vente : gondole bazar, îlot de palettes promo ; en réserve : une rangée de racks. Tout est statique (fusionné au chargement).
+// ---- masquage : le mobilier de l'aile n'est jamais visible depuis la surface de vente ou le parking, on ne le dessine que si la caméra est au fond du magasin ou dehors côté quai
+const _wv = new THREE.Vector3();
+function inWing(o) {
+  if (o.userData.keep) return false; let x, z;
+  if (o.isMesh && o.geometry) { if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere(); _wv.copy(o.geometry.boundingSphere.center).applyMatrix4(o.matrixWorld); x = _wv.x; z = _wv.z; } else { x = o.position.x; z = o.position.z; }
+  return z < -14.3 && z > -23 && x > -27 && x < 21;
+}
+function wingCull() {
+  const v = camera.position.z < -5.6 || camera.position.x < -19.6;
+  if (v === WING.vis) return; WING.vis = v; for (const o of WING.cull) o.visible = v; if (v && LIGHTS.sun) LIGHTS.sun.shadow.needsUpdate = true;
+}
+function texRep(tex, w, h, ux, uy = ux) { const t = tex.clone(); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(w / ux, h / uy); t.needsUpdate = true; return t; }
+const WING_CARTON = ['#d9a066', '#c88a50', '#e2b07a'];
+// rayonnage industriel : montants orange, lisses bleues, charges sur palettes
+function rackUnit(x0, x1, z0, z1, h, levels, fill = 0.85) {
+  const alongX = x1 - x0 > z1 - z0, L = alongX ? x1 - x0 : z1 - z0, D = alongX ? z1 - z0 : x1 - x0, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+  const at = (u, v, y, w, hh, d, col, o = {}) => (alongX ? mbox(w, hh, d, col, x0 + u, y, cz + v, o) : mbox(d, hh, w, col, cx + v, y, z0 + u, o));
+  const n = Math.max(2, Math.round(L / 2.7) + 1);
+  for (let i = 0; i < n; i++) { const u = 0.05 + (i * (L - 0.1)) / (n - 1); for (const s of [-1, 1]) at(u, s * (D / 2 - 0.05), h / 2, 0.08, h, 0.08, '#ff8a3d'); }
+  for (const y of levels) for (const s of [-1, 1]) at(L / 2, s * (D / 2 - 0.05), y, L - 0.1, 0.1, 0.06, '#2d7dd2', { ol: false });
+  for (const y of levels) { at(L / 2, 0, y + 0.02, L - 0.2, 0.03, D - 0.12, '#9aa3ad', { ol: false, cast: false });
+    for (let u = 0.4; u < L - 0.3; u += 0.62) if (Math.random() < fill) { const hh = rnd(0.32, 0.55), c = pick(WING_CARTON); at(u + rnd(-0.04, 0.04), rnd(-0.06, 0.06), y + 0.04 + hh / 2, 0.56, hh, D - 0.22, c, { ry: rnd(-0.06, 0.06) }); if (Math.random() < 0.4) at(u, D / 2 - 0.1, y + 0.2, 0.3, 0.06, 0.01, pick(['#ff5a5f', '#2d7dd2', '#56c271', '#ffd23f']), { ol: false, cast: false }); } }
+}
+// porte de cabine, de casier… : panneau fin pivoté autour d'une charnière verticale
+function leafPanel(hx, hz, w, h, ry, col, y0 = 0.15) { const g = new THREE.Group(); g.position.set(hx, y0, hz); g.rotation.y = ry; scene.add(g); mbox(w, h, 0.04, col, w / 2, h / 2, 0, { parent: g }); mbox(0.04, 0.12, 0.05, '#c9ced6', w - 0.1, h * 0.5, 0.04, { parent: g, ol: false }); return g; }
+const keepV = (m) => { m.userData.keep = 1; return m; };
+function wingSign(text, x, z, ry, bg, fg) { sign(text, Math.max(1.6, text.length * 0.17), 0.42, x, 3.28, z, ry, { bg, fg: fg || '#fff' }); }
+function buildWing() {
+  MAT_ZONE = 'in';
+  // ---------- sols ----------
+  keepV(floor(-20, 20, -16.6, -14, texRep(TEX.concrete, 40, 2.6, 3.5), '#efe8da', 0.002, { rough: 0.7 }));
+  keepV(floor(-20, -12, -22, -16.6, texRep(TEX.tiles, 8, 5.4, 2), '#d9f0f4', 0.002, { rough: 0.6 }));
+  keepV(floor(-12, -5.5, -22, -16.6, texRep(TEX.tiles, 6.5, 5.4, 1.4), '#e9fbfd', 0.002, { rough: 0.5 }));
+  keepV(floor(-5.5, 1.5, -22, -16.6, texRep(TEX.concrete, 7, 5.4, 3), '#a7a198', 0.002, { rough: 0.9 }));
+  keepV(floor(1.5, 8.5, -22, -16.6, texRep(TEX.carpet, 7, 5.4, 1.6), '#c79a7a', 0.002, { rough: 1 }));
+  keepV(floor(8.5, 20, -22, -16.6, texRep(TEX.concrete, 11.5, 5.4, 3.5), '#cfc9be', 0.002, { rough: 0.85 }));
+  // ---------- couloir de service ----------
+  decal(39.4, 0.1, '#ffd23f', 0, -14.35); decal(39.4, 0.1, '#ffd23f', 0, -16.25);
+  for (const x of [-12, -2, 8, 17.4]) { mcyl(0.11, 0.5, '#e63946', x, 1.0, -14.27, { geo: CYL6 }); mbox(0.1, 0.08, 0.12, '#2a2135', x, 1.3, -14.27, { ol: false }); sign('🧯', 0.32, 0.32, x, 1.65, -14.17, Math.PI, { bg: '#e63946', size: 90 }); }
+  mbox(2.2, 1.3, 0.05, '#c58b4f', -6, 1.75, -14.18); mbox(2.0, 1.1, 0.02, '#e9d3a8', -6, 1.75, -14.21, { ol: false });
+  for (let i = 0; i < 9; i++) mbox(rnd(0.3, 0.45), rnd(0.25, 0.4), 0.01, pick(['#ffffff', '#fff3b0', '#bfe9ff', '#ffd0d6']), -6.8 + (i % 3) * 0.7 + rnd(-0.08, 0.08), 2.1 - Math.floor(i / 3) * 0.36, -14.23, { ol: false, cast: false, rz: rnd(-0.15, 0.15) });
+  sign('INFOS DU PERSONNEL', 2.2, 0.32, -6, 2.62, -14.2, Math.PI, { bg: '#3d4454', size: 70 });
+  // fontaine à eau, horloge pointeuse
+  mbox(0.42, 1.1, 0.36, '#e9edf1', 10.2, 0.55, -14.33); mcyl(0.15, 0.42, null, 10.2, 1.32, -14.33, { mat: glassMat('#9fdcff', 0.45), ol: false }); mbox(0.3, 0.04, 0.2, '#3d4454', 10.2, 1.12, -14.2, { ol: false });
+  mbox(0.5, 0.7, 0.18, '#3d4454', -17.2, 1.45, -14.25); mbox(0.36, 0.2, 0.02, null, -17.2, 1.62, -14.15, { mat: basic('#7dffb0'), ol: false }); for (let i = 0; i < 6; i++) mbox(0.07, 0.25, 0.02, pick(['#ffffff', '#ffd23f']), -17.55 + i * 0.07, 1.0, -14.17, { ol: false, cast: false });
+  sign('POINTEUSE', 1.0, 0.24, -17.2, 1.95, -14.15, Math.PI, { bg: '#1fb5a3', size: 70 });
+  // chariot de ménage
+  mbox(0.8, 0.08, 0.55, '#2d7dd2', -3.2, 0.3, -16.13); mbox(0.8, 0.08, 0.55, '#2d7dd2', -3.2, 0.85, -16.13); for (const [x, z] of [[-3.55, -16.35], [-2.85, -16.35], [-3.55, -15.9], [-2.85, -15.9]]) mbox(0.04, 0.85, 0.04, '#9aa3ad', x, 0.45, z, { ol: false });
+  mcyl(0.2, 0.3, '#ffd23f', -3.4, 0.5, -16.13, { geo: CYL6 }); mcyl(0.02, 1.4, '#c58b4f', -2.95, 1.05, -16.1, { cast: false, ol: false }); for (let i = 0; i < 3; i++) mbox(0.12, 0.25, 0.08, pick(['#56c271', '#ff7ac6', '#4fb6ff']), -3.5 + i * 0.16, 1.02, -16.2);
+  for (const z of [-16.3, -15.95]) { const w = mcyl(0.05, 0.03, '#222', -3.6, 0.05, z, { geo: CYL6, ol: false }); w.rotation.z = Math.PI / 2; }
+  // palette de retours
+  mbox(1.2, 0.14, 0.82, '#b5834f', 6.2, 0.07, -16.0); for (let i = 0; i < 2; i++) for (let y = 0; y < 2; y++) mbox(0.56, 0.5, 0.74, pick(WING_CARTON), 5.92 + i * 0.58, 0.4 + y * 0.52, -16.0, { ry: rnd(-0.05, 0.05) }); mbox(0.5, 0.2, 0.02, '#ff5a5f', 6.2, 1.2, -15.6, { ol: false });
+  sign('RETOURS FOURNISSEURS', 1.3, 0.22, 6.2, 1.48, -15.58, 0, { bg: '#ff5a5f', size: 60 });
+  // tuyaux au plafond
+  for (const [z, c, r] of [[-16.2, '#9aa3ad', 0.07], [-16.0, '#e63946', 0.05], [-15.85, '#2d7dd2', 0.045]]) { const p = mcyl(r, 39.6, c, 0, 3.72, z, { geo: CYL6, cast: false, ol: false }); p.rotation.z = Math.PI / 2; }
+  // panneaux au-dessus des portes
+  wingSign('VESTIAIRES', -15.25, -16.4, 0, '#2d7dd2'); wingSign('TOILETTES', -9.25, -16.4, 0, '#1fb5a3'); wingSign('⚡ LOCAL TECHNIQUE', -0.25, -16.4, 0, '#3d4454', '#ffd23f');
+  wingSign('ARCHIVES', 4.25, -16.4, 0, '#c58b4f'); wingSign('ENTREPÔT', 12.5, -16.4, 0, '#ff8a3d'); wingSign('ENTREPÔT', 18.9, -16.4, 0, '#ff8a3d');
+  wingSign('SALLE DE PAUSE', 3.5, -14.18, Math.PI, '#c58b4f'); wingSign('DIRECTION', 17.7, -14.18, Math.PI, '#ffc83d', '#2a2135');
+  sign('SORTIE → COUR', 1.9, 0.38, -19.82, 3.28, -15.3, HP, { bg: '#2bb35a' });
+  sign('COULOIR DE SERVICE — PERSONNEL UNIQUEMENT', 4.6, 0.4, 19.83, 2.5, -15.3, -HP, { bg: '#3d4454', size: 60 });
+  // ---------- vestiaires ----------
+  const lockerRow = (x0, x1, zf, dir, cols) => { const n = Math.round((x1 - x0) / 0.55); for (let i = 0; i < n; i++) { const x = x0 + 0.275 + i * ((x1 - x0) / n); const c = cols[i % cols.length]; mbox(0.5, 1.8, 0.02, c, x, 1.0, zf + dir * 0.012, { ol: false }); for (let k = 0; k < 3; k++) mbox(0.3, 0.02, 0.01, '#2a2135', x, 1.65 + k * 0.05, zf + dir * 0.025, { ol: false, cast: false }); mbox(0.04, 0.1, 0.02, '#c9ced6', x + 0.18, 1.0, zf + dir * 0.03, { ol: false, cast: false }); mbox(0.12, 0.1, 0.01, '#ffffff', x, 1.45, zf + dir * 0.03, { ol: false, cast: false }); } };
+  mbox(6.1, 2.0, 0.55, '#d7dce4', -16.65, 1.0, -21.575); lockerRow(-19.7, -13.6, -21.3, 1, ['#2d7dd2', '#1fb5a3']);
+  mbox(2.8, 2.0, 0.8, '#d7dce4', -16.8, 1.0, -19.1); lockerRow(-18.2, -15.4, -18.7, 1, ['#ff8a3d', '#ffd23f']); lockerRow(-18.2, -15.4, -19.5, -1, ['#9b6bff', '#ff5a5f']);
+  mbox(2.0, 0.07, 0.4, '#c58b4f', -16.8, 0.45, -18.05); for (const x of [-17.6, -16.0]) mbox(0.08, 0.42, 0.32, '#6b4a2b', x, 0.21, -18.05);
+  mbox(0.6, 0.35, 0.3, '#e63946', -17.2, 0.65, -18.05, { ry: 0.3 }); mbox(0.3, 0.12, 0.14, '#2a2135', -16.2, 0.06, -17.6, { ry: -0.4 }); mbox(0.3, 0.12, 0.14, '#2a2135', -15.9, 0.06, -17.55, { ry: -0.2 });
+  // douche
+  mbox(0.06, 2.1, 1.75, '#bfe3f7', -13.47, 1.05, -20.975); mbox(1.25, 0.06, 1.7, '#ffffff', -12.8, 0.03, -20.97, { cast: false });
+  mcyl(0.015, 0.6, '#9aa3ad', -12.3, 2.0, -21.75, { cast: false, ol: false }); mcyl(0.09, 0.03, '#c9ced6', -12.45, 2.28, -21.6, { ol: false });
+  mbox(1.1, 1.8, 0.02, null, -12.75, 1.2, -20.13, { mat: new THREE.MeshStandardMaterial({ color: '#ffd0e0', roughness: 0.8, transparent: true, opacity: 0.85 }), ol: false }); mcyl(0.012, 1.3, '#c9ced6', -12.8, 2.12, -20.13, { cast: false, ol: false, rz: Math.PI / 2 });
+  mbox(0.6, 0.9, 0.03, null, -19.83, 1.6, -18.0, { mat: glassMat('#e6f6ff', 0.5), ry: HP, ol: false }); mbox(0.66, 0.96, 0.02, '#c9ced6', -19.85, 1.6, -18.0, { ry: HP, ol: false });
+  for (const [x, c] of [[-19.4, '#2d7dd2'], [-18.9, '#56c271']]) { mbox(0.04, 0.04, 0.12, '#9aa3ad', x, 1.85, -16.8, { ol: false }); mbox(0.35, 0.6, 0.08, c, x, 1.52, -16.82); }
+  sign('VESTIAIRES', 1.6, 0.36, -16.8, 2.75, -21.29, 0, { bg: '#2d7dd2' });
+  // ---------- toilettes ----------
+  const stalls = [-11.05, -9.45, -7.85];
+  for (const x of [-10.25, -8.65, -7.05]) { mbox(0.05, 1.8, 1.85, '#5cc8c0', x, 1.05, -20.925); mbox(0.07, 0.06, 1.87, '#3d4454', x, 1.97, -20.925, { ol: false }); }
+  stalls.forEach((x, i) => {
+    mbox(0.42, 0.42, 0.22, '#ffffff', x, 0.62, -21.72); // réservoir
+    mcyl(0.2, 0.38, '#ffffff', x, 0.19, -21.42, { geo: CYL6 }); mcyl(0.22, 0.05, '#f2f2f2', x, 0.41, -21.42, { geo: CYL6 }); mbox(0.42, 0.02, 0.06, '#e6e6e6', x, 0.86, -21.62, { ol: false }); // cuvette + abattant
+    mcyl(0.07, 0.11, '#ffffff', x - 0.52, 0.85, -21.2, { geo: CYL6, rx: 0, rz: Math.PI / 2 }); // papier
+    leafPanel(x - 0.76, -20.0, 0.66, 1.75, -1.3 + i * 0.15, '#5cc8c0'); // porte ouverte vers l'intérieur
+    mbox(0.08, 0.08, 0.02, i === 1 ? '#ff5a5f' : '#56c271', x - 0.42, 1.35, -19.99, { ol: false, cast: false });
+  });
+  // lavabos
+  mbox(0.6, 0.85, 2.8, '#e9edf1', -5.95, 0.42, -19.4); mbox(0.64, 0.05, 2.84, '#bfc6cf', -5.95, 0.87, -19.4, { ol: false });
+  for (const z of [-20.3, -18.6]) { mcyl(0.2, 0.06, '#ffffff', -5.95, 0.9, z, { geo: CYL6, ol: false }); mcyl(0.02, 0.2, '#c9ced6', -5.75, 1.0, z, { cast: false, ol: false }); mbox(0.03, 0.8, 0.9, null, -5.66, 1.65, z, { mat: glassMat('#e6f6ff', 0.55), ol: false }); mbox(0.02, 0.86, 0.96, '#c9ced6', -5.665, 1.65, z, { ol: false }); }
+  mbox(0.3, 0.28, 0.12, '#e9edf1', -5.7, 1.35, -17.5); mbox(0.2, 0.06, 0.08, '#2a2135', -5.71, 1.2, -17.5, { ol: false });
+  sign('🚹 🚺 WC', 1.4, 0.4, -9.2, 2.6, -21.83, 0, { bg: '#1fb5a3' });
+  sign('Merci de laisser ces lieux propres 🙏', 2.2, 0.24, -6.2, 2.35, -16.78, Math.PI, { bg: '#ffffff', fg: '#2a2135', size: 50 });
+  // ---------- local technique ----------
+  mcyl(0.62, 2.4, '#b8bfc8', -4.55, 1.2, -21.17, { kind: 'metal' }); mcyl(0.64, 0.1, '#e63946', -4.55, 2.1, -21.17, { ol: false }); mcyl(0.64, 0.1, '#e63946', -4.55, 0.4, -21.17, { ol: false });
+  for (const [y, c] of [[1.55, '#ffffff'], [1.25, '#ffffff']]) { mcyl(0.09, 0.04, c, -4.3, y, -20.55, { rx: HP, ol: false }); mbox(0.01, 0.07, 0.01, '#e63946', -4.3, y + 0.02, -20.52, { ol: false, cast: false, rz: rnd(-1, 1) }); }
+  for (const x of [-4.8, -4.3]) mcyl(0.07, 1.4, '#c87a3a', x, 3.2, -21.3, { geo: CYL6, cast: false });
+  mcyl(0.42, 2.0, '#f2f2f2', -3.05, 1.0, -21.42); mbox(0.3, 0.2, 0.02, '#2d7dd2', -3.05, 1.4, -20.99, { ol: false });
+  mbox(2.2, 2.2, 0.45, '#9aa3ad', -0.7, 1.1, -21.62); for (let i = 0; i < 3; i++) { mbox(0.66, 1.9, 0.02, '#b8bfc8', -1.45 + i * 0.74, 1.1, -21.39, { ol: false }); mbox(0.04, 0.12, 0.03, '#2a2135', -1.2 + i * 0.74, 1.1, -21.37, { ol: false }); }
+  sign('⚡ DANGER', 0.7, 0.3, -0.7, 1.7, -21.36, 0, { bg: '#ffd23f', fg: '#2a2135', size: 80 });
+  WING.leds = []; for (let i = 0; i < 6; i++) WING.leds.push(mbox(0.04, 0.04, 0.02, null, -1.6 + i * 0.18, 2.0, -21.37, { mat: basic(['#ff5a5f', '#56c271', '#ffd23f'][i % 3], {}), ol: false, cast: false }));
+  for (const l of WING.leds) l.userData.dyn = true;
+  mbox(0.8, 2.0, 2.0, '#9aa3ad', -2.8, 1.0, -18.6, { kind: 'metal' }); for (const y of [0.4, 1.0, 1.6]) { mbox(0.78, 0.04, 1.96, '#7c858f', -2.8, y, -18.6, { ol: false }); for (let k = 0; k < 4; k++) if (Math.random() < 0.8) (Math.random() < 0.5 ? mcyl(0.12, 0.22, pick(['#2d7dd2', '#ffffff', '#e63946', '#ffd23f']), -2.8, y + 0.13, -19.35 + k * 0.5, { geo: CYL6 }) : mbox(0.45, 0.2, 0.3, pick(['#e63946', '#2a2135', '#ffd23f']), -2.8, y + 0.12, -19.35 + k * 0.5)); }
+  mbox(0.9, 0.8, 1.0, '#2d7dd2', 0.75, 0.4, -18.7); mcyl(0.25, 0.4, '#3d4454', 0.75, 0.95, -18.7, { geo: CYL6 }); const pp = mcyl(0.06, 1.0, '#9aa3ad', 0.3, 0.6, -18.7, { geo: CYL6 }); pp.rotation.x = HP;
+  for (const [z, c, r] of [[-21.6, '#2d7dd2', 0.06], [-21.3, '#e63946', 0.06], [-20.9, '#9aa3ad', 0.09], [-19.5, '#ffd23f', 0.05]]) { const p = mcyl(r, 6.8, c, -2, 3.6, z, { geo: CYL6, cast: false, ol: false }); p.rotation.z = Math.PI / 2; }
+  for (let i = 0; i < 6; i++) decal(0.5, 0.15, i % 2 ? '#2a2135' : '#ffd23f', -0.7 - 1.25 + i * 0.5, -20.9, 0.006);
+  sign('HAUTE TENSION — NE PAS TOUCHER', 2.3, 0.3, 0.2, 2.5, -16.78, Math.PI, { bg: '#ffd23f', fg: '#2a2135', size: 56 });
+  // ---------- archives ----------
+  const binders = (x0, x1, zf, dir, y) => { for (let x = x0 + 0.1; x < x1 - 0.1; x += rnd(0.08, 0.11)) { if (Math.random() < 0.08) { x += 0.15; continue; } mbox(0.07, rnd(0.3, 0.36), 0.3, pick(['#2d7dd2', '#e63946', '#56c271', '#ffd23f', '#9b6bff', '#3d4454', '#ff8a3d']), x, y + 0.2, zf + dir * 0.16, { ol: false, rz: Math.random() < 0.08 ? 0.3 : 0 }); } };
+  const shelfFrame = (x0, x1, z0, z1, sides) => { const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, w = x1 - x0, d = z1 - z0; for (const x of [x0 + 0.03, x1 - 0.03]) mbox(0.05, 2.3, d, '#7a5236', x, 1.15, cz); for (const y of [0.1, 0.6, 1.1, 1.6, 2.1]) { mbox(w, 0.04, d, '#a0744b', cx, y, cz, { ol: false }); if (y < 2) for (const [zf, dir] of sides) binders(x0, x1, zf, dir, y); } };
+  shelfFrame(1.65, 6.4, -21.85, -21.35, [[-21.85, 1]]); shelfFrame(3.2, 8.35, -19.9, -19.4, [[-19.9, -1], [-19.4, 1]].map(([z, d]) => [z + (d > 0 ? -0.33 : 0.03), d]));
+  mbox(1.5, 0.06, 0.8, '#7a5236', 7.45, 0.78, -17.7); for (const [x, z] of [[6.75, -18.05], [8.15, -18.05], [6.75, -17.35], [8.15, -17.35]]) mbox(0.06, 0.76, 0.06, '#5b3d22', x, 0.38, z, { ol: false });
+  mbox(0.6, 0.35, 0.45, '#e9edf1', 7.75, 1.0, -17.75); mbox(0.5, 0.02, 0.32, '#2a2135', 7.75, 1.18, -17.75, { ol: false }); mcyl(0.02, 0.35, '#2a2135', 7.0, 0.98, -17.9, { cast: false, ol: false }); mcone(0.1, 0.12, '#56c271', 7.08, 1.17, -17.84);
+  for (let i = 0; i < 7; i++) mbox(0.21, 0.01, 0.29, '#ffffff', 7.1 + rnd(-0.12, 0.12), 0.82 + i * 0.008, -17.55 + rnd(-0.06, 0.06), { ol: false, cast: false, ry: rnd(-0.5, 0.5) });
+  for (const [x, z, n] of [[2.2, -18.0, 3], [2.8, -17.3, 2], [5.6, -17.25, 2]]) for (let k = 0; k < n; k++) { mbox(0.42, 0.3, 0.32, '#e2b07a', x + rnd(-0.03, 0.03), 0.15 + k * 0.31, z, { ry: rnd(-0.15, 0.15) }); mbox(0.2, 0.08, 0.005, '#ffffff', x, 0.17 + k * 0.31, z + 0.165, { ol: false, cast: false }); }
+  sign('ARCHIVES 1998 – 2026', 2.0, 0.34, 4.0, 2.65, -21.33, 0, { bg: '#c58b4f' });
+  sign('NE PAS DÉRANGER LES DOSSIERS', 2.2, 0.26, 4.6, 2.4, -16.78, Math.PI, { bg: '#ffffff', fg: '#2a2135', size: 52 });
+  // ---------- entrepôt ----------
+  for (const x of [10.6, 13.6, 16.6]) rackUnit(x, x + 0.8, -21.85, -18.6, 3.2, [0.15, 1.2, 2.25]);
+  for (const x of [9.55, 12.5, 15.5, 18.6]) { decal(0.1, 5.0, '#ffd23f', x - 0.95, -19.3); decal(0.1, 5.0, '#ffd23f', x + 0.95, -19.3); }
+  // transpalette électrique
+  mbox(0.9, 1.1, 0.7, '#ffd23f', 9.4, 0.6, -17.95); mbox(0.86, 0.05, 0.66, '#2a2135', 9.4, 1.17, -17.95, { ol: false }); for (const s of [-1, 1]) mbox(0.16, 0.08, 1.0, '#3d4454', 9.4 + s * 0.25, 0.06, -17.2);
+  mcyl(0.025, 0.55, '#2a2135', 9.4, 1.35, -18.25, { cast: false }); mbox(0.4, 0.05, 0.05, '#2a2135', 9.4, 1.62, -18.25, { ol: false });
+  // le fort en cartons (coin pour glander)
+  for (const [x, z, y, ry] of [[14.9, -21.55, 0, 0.1], [15.5, -21.6, 0, -0.05], [16.1, -21.55, 0, 0.08], [14.85, -21.0, 0, HP], [16.15, -21.0, 0, HP + 0.1], [15.2, -21.58, 1, 0.2], [15.85, -21.55, 1, -0.1], [14.85, -20.45, 0, HP - 0.1]]) mbox(0.55, 0.42, 0.45, pick(WING_CARTON), x, 0.21 + y * 0.43, z, { ry });
+  sign('QG — INTERDIT AU DIRECTEUR', 1.2, 0.22, 15.5, 1.08, -21.33, 0, { bg: '#ffffff', fg: '#e63946', size: 60 }).rotation.z = 0.06;
+  // porte de quai fermée (décor) et panneaux
+  mbox(0.06, 3.2, 3.2, '#c9ced6', 19.83, 1.6, -19.3); for (let k = 0; k < 10; k++) mbox(0.07, 0.03, 3.1, '#9aa3ad', 19.82, 0.2 + k * 0.32, -19.3, { ol: false, cast: false });
+  sign('QUAI 2 — HORS SERVICE', 2.4, 0.36, 19.8, 3.45, -19.3, -HP, { bg: '#e63946' });
+  sign('PORT DES CHAUSSURES DE SÉCURITÉ OBLIGATOIRE', 3.2, 0.3, 12.5, 2.5, -16.78, Math.PI, { bg: '#2d7dd2', size: 52 });
+  // ---------- cour de service (dehors, derrière le quai) ----------
+  MAT_ZONE = 'out';
+  mbox(2.0, 1.75, 1.7, '#3a9a5a', -25.3, 0.875, -15.35); mbox(2.06, 0.12, 1.76, '#2f7f49', -25.3, 1.8, -15.35, { ol: false }); mbox(0.5, 0.35, 0.05, '#e63946', -24.7, 1.3, -14.48, { ol: false });
+  sign('COMPACTEUR', 1.4, 0.32, -25.3, 1.0, -14.48, 0, { bg: '#ffd23f', fg: '#2a2135', size: 70 });
+  for (let k = 0; k < 9; k++) mbox(1.2, 0.14, 0.8, '#b5834f', -21.3 + rnd(-0.05, 0.05), 0.07 + k * 0.155, -21.1, { ry: rnd(-0.08, 0.08) });
+  // banc au soleil (sans collision : on s'assoit dessus)
+  mbox(2.0, 0.07, 0.42, '#c58b4f', -23.5, 0.45, -21.25); mbox(2.0, 0.42, 0.06, '#c58b4f', -23.5, 0.78, -21.47, { rx: -0.12 }); for (const x of [-24.35, -22.65]) mbox(0.08, 0.45, 0.4, '#3d4454', x, 0.22, -21.25);
+  mbox(0.4, 0.35, 0.4, '#b5834f', -22.2, 0.17, -20.4); mbox(0.22, 0.12, 0.14, '#e63946', -22.2, 0.42, -20.4); mcyl(0.03, 0.08, '#ffffff', -22.1, 0.39, -20.32, { geo: CYL6, ol: false });
+  mcyl(0.28, 0.45, '#c0663a', -26.1, 0.22, -21.5, { geo: CYL6 }); msph(0.5, '#4fae3f', -26.1, 0.85, -21.5, { geo: ICO0 });
+  // grillage autour de la cour
+  const fenceM = new THREE.MeshStandardMaterial({ color: '#9aa3ad', transparent: true, opacity: 0.35, side: THREE.DoubleSide, roughness: 0.6 });
+  for (let x = -26.6; x <= -20.2; x += 1.6) mcyl(0.04, 1.8, '#7c858f', x, 0.9, -22.0, { geo: CYL6 });
+  for (let z = -22; z <= -6.4; z += 1.6) mcyl(0.04, 1.8, '#7c858f', -26.6, 0.9, z, { geo: CYL6 });
+  wallPlane(null, 6.4, 1.7, -23.4, 0.9, -22.0, 0, { mat: fenceM }); wallPlane(null, 15.6, 1.7, -26.6, 0.9, -14.2, HP, { mat: fenceM });
+  sign('COUR DE SERVICE', 2.2, 0.4, -20.1, 2.6, -18.5, -HP, { bg: '#3d4454' });
+  MAT_ZONE = 'in';
+  // ---------- surface de vente : gondole bazar ----------
+  mbox(1.0, 0.14, 5.0, '#3d4454', 15.1, 0.07, -0.9); mbox(0.1, 2.05, 5.0, '#d7dce4', 15.1, 1.1, -0.9);
+  for (const y of [0.32, 0.9, 1.48, 2.02]) mbox(0.98, 0.05, 5.0, '#ffffff', 15.1, y, -0.9, { cast: false });
+  mbox(1.04, 2.15, 0.12, '#9b6bff', 15.1, 1.07, 1.6); mbox(1.04, 2.15, 0.12, '#9b6bff', 15.1, 1.07, -3.4);
+  const bazarItem = (x, y, z) => { const r = Math.random(), c = pick(['#ff5a5f', '#2d7dd2', '#56c271', '#ffd23f', '#9b6bff', '#ff7ac6', '#1fb5a3', '#ff8a3d']);
+    if (r < 0.25) mcyl(0.11, 0.22, c, x, y + 0.11, z, { geo: CYL6 }); // seau, pot
+    else if (r < 0.45) { mbox(0.24, 0.28, 0.2, c, x, y + 0.14, z); mbox(0.16, 0.1, 0.005, '#ffffff', x + (x > 15.1 ? 0.121 : -0.121), y + 0.18, z, { ol: false, cast: false, ry: HP }); } // boîte de jouet
+    else if (r < 0.65) { for (let k = 0; k < 3; k++) mbox(0.26, 0.06, 0.2, k % 2 ? '#ffffff' : c, x, y + 0.03 + k * 0.065, z, { ol: false }); } // serviettes pliées
+    else if (r < 0.8) { mcyl(0.12, 0.08, '#3d4454', x, y + 0.04, z, { geo: CYL6 }); mbox(0.04, 0.03, 0.18, '#2a2135', x, y + 0.07, z + 0.18, { ol: false }); } // poêle
+    else msph(0.1, c, x, y + 0.1, z, { geo: ICO0 }); }; // ballon
+  for (const y of [0.34, 0.92, 1.5]) for (const s of [-1, 1]) for (let z = -3.1; z < 1.35; z += 0.36) if (Math.random() < 0.85) bazarItem(15.1 + s * 0.27, y, z + rnd(-0.03, 0.03));
+  for (const s of [-1, 1]) for (const y of [0.3, 0.88, 1.46]) mbox(0.02, 0.07, 5.0, '#9b6bff', 15.1 + s * 0.5, y, -0.9, { cast: false, ol: false });
+  sign('◂ BAZAR · MAISON ▸', 3.0, 0.5, 15.1, 3.15, 1.75, 0, { bg: '#9b6bff' }); sign('◂ BAZAR · MAISON ▸', 3.0, 0.5, 15.1, 3.15, -3.55, Math.PI, { bg: '#9b6bff' });
+  for (const z of [1.75, -3.55]) for (const s of [-1, 1]) mcyl(0.015, 0.8, '#666', 15.1 + s * 1.2, 3.7, z, { cast: false, ol: false });
+  sign('PETITS PRIX', 0.9, 0.3, 15.1, 1.55, 1.68, 0, { bg: '#ff5a5f', size: 80 });
+  // ---------- îlot de palettes promo ----------
+  mbox(1.4, 0.14, 1.6, '#b5834f', 10.3, 0.07, 2.7);
+  for (let y = 0; y < 3; y++) for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) { const hh = 0.6; mbox(0.66, hh - 0.02, 0.76, pick(['#ff5a5f', '#ffd23f', '#ff8a3d']), 9.97 + i * 0.67, 0.15 + hh / 2 + y * hh, 2.31 + j * 0.78); }
+  for (const [x, z, ry] of [[10.3, 1.88, 0], [10.3, 3.52, Math.PI], [9.58, 2.7, -HP], [11.02, 2.7, HP]]) sign('MÉGA PROMO', 0.95, 0.3, x, 1.05, z, ry, { bg: '#ffffff', fg: '#e63946', size: 80 });
+  mcyl(0.02, 0.5, '#777', 10.3, 2.2, 2.7, { cast: false, ol: false }); sign('−50 % SUR LA 2ᵉ PALETTE', 2.2, 0.45, 10.3, 2.6, 2.7, 0, { bg: '#e63946', fg: '#fff', double: true });
+  // ---------- réserve : rangée de racks ----------
+  rackUnit(-16.5, -12.5, -10.6, -9.8, 3.0, [0.15, 1.15, 2.15], 0.9);
+  sign('ALLÉE B', 0.9, 0.3, -12.48, 2.75, -10.2, HP, { bg: '#ffd23f', fg: '#2a2135' });
+}
+// petit mouvement : voyants du tableau électrique
+const WING = { leds: [], t: 0, cull: [], vis: null };
+function wingTick(dt) {
+  WING.t += dt; if (WING.t < 0.35) return; WING.t = 0;
+  for (const l of WING.leds) l.visible = Math.random() < 0.7;
+}
+
 // ======================= PERSONNAGES (cartoon low-poly lissé, contours) =======================
 // volume « galet » : sphère basse définition déformée en superellipsoïde (n = 2 : sphère ; plus grand : boîte aux angles très arrondis), n pouvant varier du bas vers le haut, avec évasement vertical
 function pebbleGeo(n, taper = 0, detail = 2, nTop = n) {
@@ -2976,7 +3211,7 @@ function hostSabotage(pid, st, sub, extra) {
   else if (st.id === 'microondes') { if (has('smoke')) return; g.ms.push([++H.mSeq, 'smoke', st.x, st.z, -1, T]); hostEvent(['boom']); }
   else if (st.id === 'congel') { if (has('melt')) return; g.ms.push([++H.mSeq, 'melt', st.x, st.z, -1, T]); takeProducts(9, 4); }
   else if (st.id === 'four' && sub === 'four') { if (g.ov[0] === 3) return; g.ov = [3, 0]; if (!has('burn')) g.ms.push([++H.mSeq, 'burn', st.x, st.z, -1, T]); hostEvent(['burn']); }
-  else if (!['sieste', 'echant', 'arcade'].includes(st.id)) return;
+  else if (!['sieste', 'echant', 'arcade', 'wc', 'fort', 'cour'].includes(st.id)) return;
   hostProd(-dmg * kG()); H.stats[pid][1]++; hostSuspicion(pid, st.x, st.z, place);
 }
 // ---------- stock ----------
@@ -3214,7 +3449,7 @@ function botWorker(b, dt, role) {
     const mp = hostPos(g.mg);
     if (mp && Math.hypot(mp[0] - b.x, mp[1] - b.z) < 7 && (b.cover || 0) < 3) { b.cover = (b.cover || 0) + 1; b.task = genWork(W, new Set()) || null; return; }
   }
-  if (st && st.id === 'sieste') b.ry = Math.PI;
+  if (st && st.id === 'sieste') b.ry = Math.PI; else if (st && st.seat !== undefined && t.type === 's') { b.ry = st.seat; b.x += (st.x - b.x) * 0.5; b.z += (st.z - b.z) * 0.5; } // assis : sur la cuvette, sur le banc
   if (st && st.place && t.type === 'w') {
     b.anim = 2; b.placeT = (b.placeT || 0.45) - dt; b.ry = st.shelf === 9 ? (b.x < 5 ? Math.PI / 2 : -Math.PI / 2) : SHELVES[st.shelf].kind === 'freezer' ? 0 : SHELVES[st.shelf].side > 0 ? -Math.PI / 2 : Math.PI / 2;
     if (b.placeT > 0) return; b.placeT = 0.45; b.placed = (b.placed || 0) + 1;
@@ -3222,7 +3457,7 @@ function botWorker(b, dt, role) {
     if (!ok || b.placed >= BOX_SIZE) { if (ok || b.placed > 1) H.stats[b.id][0]++; b.placed = 0; b.carry = 0; b.task = null; b.wait = rnd(0.4, 2); b.anim = 0; }
     return;
   }
-  b.anim = st && st.id === 'sieste' ? 4 : st && st.id === 'arcade' ? 5 : 2; b.work += dt;
+  b.anim = st && st.id === 'sieste' ? 4 : st && st.id === 'arcade' ? 5 : st && st.seat !== undefined ? 3 : 2; b.work += dt;
   const hold = (st ? stepHold(step) : step.hold) * (st?.mg ? 1.4 : 1);
   if (b.work < hold) return;
   b.work = 0;
@@ -3483,8 +3718,8 @@ function gameFrame(dt, G) {
   const c = C.cand;
   if (c && !c.inst && !c.cd && c.k !== 'cams' && !c.mg && pressing && !C.hold.lock && !frozen) {
     if (C.hold.key !== c.key) C.hold = { key: c.key, t: 0, lock: false };
-    C.hold.t += dt; ME.anim = c.st?.id === 'sieste' ? 4 : c.st?.id === 'arcade' ? 5 : 2;
-    if (c.st?.id === 'sieste') ME.ry = Math.PI; else if (Math.hypot(c.x - ME.x, c.z - ME.z) > 0.25) ME.ry = Math.atan2(c.x - ME.x, c.z - ME.z);
+    C.hold.t += dt; ME.anim = c.st?.id === 'sieste' ? 4 : c.st?.id === 'arcade' ? 5 : c.k === 'sab' && c.st?.seat !== undefined ? 3 : 2;
+    if (c.st?.id === 'sieste') ME.ry = Math.PI; else if (c.k === 'sab' && c.st?.seat !== undefined) { ME.ry = c.st.seat; const k = Math.min(1, dt * 8); ME.x += (c.x - ME.x) * k; ME.z += (c.z - ME.z) * k; } else if (Math.hypot(c.x - ME.x, c.z - ME.z) > 0.25) ME.ry = Math.atan2(c.x - ME.x, c.z - ME.z);
     if (C.hold.t >= c.hold) { completeCand(c); C.hold.lock = true; C.hold.t = 0; }
   } else {
     if (!pressing) C.hold.lock = false;
@@ -4050,7 +4285,7 @@ const UI = {
     $('#meetInfo').innerHTML = dec ? (iMgr ? '👔 <b>À toi de trancher</b> : vire quelqu’un ou garde tout le monde.' : '👔 Le directeur prend sa décision…') : (iMgr ? '💬 Écoute ton équipe dans le chat (Entrée). Tu trancheras après le vote.' : alive ? '💬 Discute dans le chat (Entrée) et vote. Le directeur tranchera ensuite.' : '👻 Tu observes la réunion.') + (skips && dec ? ` · 🤷 ${skips} vote(s) blanc(s)` : '');
   },
   drawMini(G) {
-    const cv = $('#mini'), x = cv.getContext('2d'), Wd = cv.width, Hd = cv.height; const s = 10.3, ox = Wd / 2 - (-3 * s), oz = Hd / 2 - (4.3 * s);
+    const cv = $('#mini'), x = cv.getContext('2d'), Wd = cv.width, Hd = cv.height; const s = 8.6, ox = Wd / 2 - (-3 * s), oz = Hd / 2 - (0.3 * s);
     const X = (v) => ox + v * s, Z = (v) => oz + v * s;
     x.clearRect(0, 0, Wd, Hd);
     for (const zn of ZONES) { x.fillStyle = zn.outdoor ? 'rgba(120,130,145,.55)' : zn.id === 'vente' ? 'rgba(235,228,212,.85)' : 'rgba(205,200,190,.8)'; x.fillRect(X(zn.x0), Z(zn.z0), (zn.x1 - zn.x0) * s, (zn.z1 - zn.z0) * s); }
@@ -4284,7 +4519,7 @@ function renderFrame() {
 // ======================= DÉMARRAGE & BOUCLE =======================
 DBG.lowgfx = () => setGfx('low');
 window.__qgCloseMg = () => MG.close(null);
-Object.assign(DBG, { get NETR() { return NET.room; }, itemStep, hostUpdate, storeNeeds, OPEN, MG, VM, SHELVES, PEND,  C, H, ME, NET, KEYS, UI, AV, ST, WORLD, TUNE, curG, navPath, hostStart, hostAddBot, hostMeeting, hostFire, doSolo, sendAction, GFX, FX, POST, REFL, LIGHTS, setGfx, gfxAdapt, makeChar, animChar, setCharCarry, portraitURL, fxEvent, CINE });
+Object.assign(DBG, { get NETR() { return NET.room; }, itemStep, hostUpdate, storeNeeds, OPEN, MG, VM, SHELVES, PEND,  C, H, ME, NET, KEYS, UI, AV, ST, WORLD, TUNE, curG, navPath, hostStart, hostAddBot, hostMeeting, hostFire, doSolo, sendAction, GFX, FX, POST, REFL, LIGHTS, setGfx, gfxAdapt, makeChar, animChar, setCharCarry, portraitURL, fxEvent, CINE, BOXES, PATROL, BROWSE, zoneAt, CAMS, navNearest, navCell });
 for (const [k, f] of [['camera', () => camera], ['scene', () => scene], ['renderer', () => renderer]]) Object.defineProperty(DBG, k, { get: f });
 let lastT = performance.now();
 function frame(dt) { clientFrame(dt); UI.update(dt); }

@@ -213,8 +213,8 @@ function gameFrame(dt, G) {
   const c = C.cand;
   if (c && !c.inst && !c.cd && c.k !== 'cams' && !c.mg && pressing && !C.hold.lock && !frozen) {
     if (C.hold.key !== c.key) C.hold = { key: c.key, t: 0, lock: false };
-    C.hold.t += dt; ME.anim = c.st?.id === 'sieste' ? 4 : c.st?.id === 'arcade' ? 5 : 2;
-    if (c.st?.id === 'sieste') ME.ry = Math.PI; else if (Math.hypot(c.x - ME.x, c.z - ME.z) > 0.25) ME.ry = Math.atan2(c.x - ME.x, c.z - ME.z);
+    C.hold.t += dt; ME.anim = c.st?.id === 'sieste' ? 4 : c.st?.id === 'arcade' ? 5 : c.k === 'sab' && c.st?.seat !== undefined ? 3 : 2;
+    if (c.st?.id === 'sieste') ME.ry = Math.PI; else if (c.k === 'sab' && c.st?.seat !== undefined) { ME.ry = c.st.seat; const k = Math.min(1, dt * 8); ME.x += (c.x - ME.x) * k; ME.z += (c.z - ME.z) * k; } else if (Math.hypot(c.x - ME.x, c.z - ME.z) > 0.25) ME.ry = Math.atan2(c.x - ME.x, c.z - ME.z);
     if (C.hold.t >= c.hold) { completeCand(c); C.hold.lock = true; C.hold.t = 0; }
   } else {
     if (!pressing) C.hold.lock = false;

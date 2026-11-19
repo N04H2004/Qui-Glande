@@ -47,7 +47,7 @@ function gfxAdapt(dt) {
 }
 // ombre du soleil : la scène extérieure est presque statique, on ne la recalcule que de temps en temps (ou souvent si quelqu'un est dehors)
 function lightTick() {
-  GFX.frame++; const q = GFX.q; let out = !insideStore(camera.position.x, camera.position.z);
+  wingCull(); GFX.frame++; const q = GFX.q; let out = !insideStore(camera.position.x, camera.position.z);
   if (!out) for (const a of AV.values()) if (!insideStore(a.x, a.z)) { out = true; break; }
   if (GFX.frame < 6 || GFX.frame % (out ? q.sunOut : q.sunEvery) === 0) LIGHTS.sun.shadow.needsUpdate = true;
 }

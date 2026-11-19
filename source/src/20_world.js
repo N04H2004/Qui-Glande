@@ -179,8 +179,8 @@ function initRenderer() {
   const sun = (LIGHTS.sun = new THREE.DirectionalLight('#ffc084', 5.2)); sun.target.position.set(-2, 0, 4); sun.position.copy(sun.target.position).addScaledVector(SUN_DIR, 75); scene.add(sun, sun.target);
   sun.castShadow = true; sun.shadow.mapSize.set(GFX.q.sunShadow, GFX.q.sunShadow); const sc = sun.shadow.camera; sc.left = -42; sc.right = 42; sc.top = 38; sc.bottom = -38; sc.near = 15; sc.far = 150; sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.07; sun.shadow.radius = 1.6; sun.shadow.autoUpdate = false; sun.shadow.needsUpdate = true;
   // néons : lumière froide qui tombe du plafond. Sa carte d'ombre démarre juste sous le plafond et ne couvre que l'intérieur ; dehors, elle sert de lumière de ciel.
-  const neon = (LIGHTS.neon = new THREE.DirectionalLight('#e6f0ff', 1.5)); neon.position.set(0, 13.86, 0); neon.target.position.set(0, 0, 0); scene.add(neon, neon.target);
-  neon.castShadow = GFX.q.neonShadow > 0; neon.shadow.mapSize.set(GFX.q.neonShadow || 1024, GFX.q.neonShadow || 1024); const nc = neon.shadow.camera; nc.left = -20.6; nc.right = 20.6; nc.top = 14.6; nc.bottom = -14.6; nc.near = 10; nc.far = 14.2; neon.shadow.bias = -0.0012; neon.shadow.normalBias = 0.025; neon.shadow.radius = 1.3;
+  const neon = (LIGHTS.neon = new THREE.DirectionalLight('#e6f0ff', 1.5)); neon.position.set(0, 13.86, -4); neon.target.position.set(0, 0, -4); scene.add(neon, neon.target);
+  neon.castShadow = GFX.q.neonShadow > 0; neon.shadow.mapSize.set(GFX.q.neonShadow || 1024, GFX.q.neonShadow || 1024); const nc = neon.shadow.camera; nc.left = -20.6; nc.right = 20.6; nc.top = 18.6; nc.bottom = -18.6; nc.near = 10; nc.far = 14.2; neon.shadow.bias = -0.0012; neon.shadow.normalBias = 0.025; neon.shadow.radius = 1.3;
   buildSky();
   addEventListener('resize', onResize);
 }
@@ -432,28 +432,32 @@ function buildWorld() {
   makeTextures();
   MAT_ZONE = 'out';
   const big = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), new THREE.MeshStandardMaterial({ map: TEX.grass, roughness: 1, metalness: 0, envMap: ENV.out })); big.rotation.x = -Math.PI / 2; big.position.y = -0.03; big.receiveShadow = true; scene.add(big);
-  floor(-24, 24, 14, 26.5, TEX.asphalt, null, -0.005, { rough: 0.95, out: true }); floor(-30, -20, -15, -5.5, TEX.concrete, '#d8d8d8', -0.004, { rough: 0.9, out: true });
+  floor(-24, 24, 14, 26.5, TEX.asphalt, null, -0.005, { rough: 0.95, out: true }); floor(-30, -20, -23, -5.5, texRep(TEX.concrete, 10, 17.5, 2.5), '#d8d8d8', -0.004, { rough: 0.9, out: true });
   MAT_ZONE = 'in';
   floor(-20, 20, -6, 14, TEX.tiles, null, 0.002, { rough: 1, rmap: TEX.tilesR, refl: true }); floor(-20, -6, -14, -6, TEX.concrete, null, 0.002, { rough: 0.86 }); floor(-6, 1, -14, -6, TEX.ice, null, 0.002, { rough: 0.2, refl: true }); floor(1, 10, -14, -6, TEX.wood, null, 0.002, { rough: 0.45, refl: true }); floor(10, 20, -14, -6, TEX.carpet, null, 0.002, { rough: 1 });
-  buildStructure(); MAT_ZONE = 'out'; buildOutdoor(); MAT_ZONE = 'in'; buildSales(); buildBackRooms(); buildBunting(); buildProps(); buildDecor(); buildAO();
+  buildStructure(); MAT_ZONE = 'out'; buildOutdoor(); MAT_ZONE = 'in'; buildSales(); buildBackRooms(); buildWing(); buildBunting(); buildProps(); buildDecor(); buildAO();
 }
 function buildStructure() {
   // murs crème + soubassement turquoise + liseré orange
   for (const b of BOXES) if (b.kind === 'wall') {
     const w = b.x1 - b.x0, d = b.z1 - b.z0, cx = (b.x0 + b.x1) / 2, cz = (b.z0 + b.z1) / 2;
-    mbox(w, b.h, d, '#fff1d6', cx, b.h / 2, cz);
-    mbox(w + 0.04, 1.05, d + 0.04, '#1fb5a3', cx, 0.525, cz, { ol: false });
-    mbox(w + 0.06, 0.12, d + 0.06, '#ff8a3d', cx, 1.1, cz, { ol: false });
+    mbox(w, b.h, d, '#fff1d6', cx, b.h / 2, cz).userData.keep = 1;
+    mbox(w + 0.04, 1.05, d + 0.04, '#1fb5a3', cx, 0.525, cz, { ol: false }).userData.keep = 1;
+    mbox(w + 0.06, 0.12, d + 0.06, '#ff8a3d', cx, 1.1, cz, { ol: false }).userData.keep = 1;
   }
-  for (const d of DOORS) mbox(d.x1 - d.x0, 1.1, d.z1 - d.z0, '#fff1d6', (d.x0 + d.x1) / 2, 3.45, (d.z0 + d.z1) / 2);
+  for (const d of DOORS) mbox(d.x1 - d.x0, 1.1, d.z1 - d.z0, '#fff1d6', (d.x0 + d.x1) / 2, 3.45, (d.z0 + d.z1) / 2).userData.keep = 1;
   // toit (il porte l'ombre du soleil sur l'intérieur) + faux plafond à dalles + poutres
-  mbox(40.6, 0.24, 28.6, '#fff1d6', 0, 4.14, 0, { recv: false, ol: false });
-  const ceil = new THREE.Mesh(new THREE.PlaneGeometry(40, 28), new THREE.MeshBasicMaterial({ map: TEX.ceil })); ceil.rotation.x = Math.PI / 2; ceil.position.set(0, 4.0, 0); scene.add(ceil);
+  mbox(40.6, 0.24, 36.6, '#fff1d6', 0, 4.14, -4, { recv: false, ol: false });
+  const ceil = new THREE.Mesh(new THREE.PlaneGeometry(40, 36), new THREE.MeshBasicMaterial({ map: texRep(TEX.ceil, 40, 36, 40 / 17, 28 / 12) })); ceil.rotation.x = Math.PI / 2; ceil.position.set(0, 4.0, -4); scene.add(ceil);
   for (let x = -17; x <= 17; x += 6.8) mbox(0.25, 0.25, 20, null, x, 3.88, 4, { mat: basic('#ddd2bd'), cast: false, recv: false, ol: false });
   // luminaires : caisson + deux tubes néon légèrement bleutés (le bloom les fait rayonner)
   const fixture = (x, z, len = 2.4, tube = NEON, rot = 0) => { const ry = rot ? Math.PI / 2 : 0; mbox(len + 0.2, 0.07, 0.4, '#e9edf1', x, 3.945, z, { cast: false, recv: false, ol: false, ry }); for (const s of [-1, 1]) mbox(len, 0.05, 0.085, null, x + (rot ? s * 0.1 : 0), 3.895, z + (rot ? 0 : s * 0.1), { mat: tube, cast: false, recv: false, ol: false, r: 0, ry }); };
   for (let x = -16; x <= 16; x += 5.3) for (let z = -3; z <= 12; z += 4.5) fixture(x, z);
-  fixture(-16.5, -10, 2.4, NEON_FLICK, 1); // néon fatigué de la réserve : il grésille (voir 26_decor.js) fixture(-10, -10, 2.4, NEON, 1); fixture(-2.5, -10, 2.2, NEON_COLD, 1); fixture(15, -9.2, 2.4, NEON);
+  fixture(-16.5, -10, 2.4, NEON_FLICK, 1); // néon fatigué de la réserve : il grésille (voir 26_decor.js)
+  fixture(-10, -10, 2.4, NEON, 1); fixture(-2.5, -10, 2.2, NEON_COLD, 1); fixture(15, -9.2, 2.4, NEON); // (ces trois-là étaient restés dans le commentaire au-dessus)
+  // aile de service
+  for (const x of [-15, -5, 5, 15]) fixture(x, -15.3, 2.4);
+  fixture(-16.2, -19.4); fixture(-8.75, -19.0, 2.2, NEON_COLD); fixture(-1.5, -19.4, 2.0, NEON_FLICK); fixture(5, -18.6); for (const x of [12.5, 15.5, 18.6]) fixture(x, -19.6, 2.4, NEON, 1);
   for (const x of [4.9, 7.1]) { mcyl(0.012, 1.3, '#2a2135', x, 3.35, -10.2, { cast: false, ol: false }); mcone(0.34, 0.28, '#ff8a3d', x, 2.62, -10.2, { cast: false }); msph(0.1, null, x, 2.5, -10.2, { mat: BULB, cast: false, recv: false, ol: false }); }
   // façade (extérieur : reflète le ciel)
   MAT_ZONE = 'out';
@@ -477,8 +481,8 @@ function buildOutdoor() {
   for (let i = 0; i < 14; i++) { const a = (i / 14) * Math.PI * 2; const d = rnd(95, 115); const hgt = rnd(10, 22); const m = mcone(rnd(14, 24), hgt, pick(['#7cc96a', '#6dbb5c', '#8fd27a']), Math.cos(a) * d, hgt / 2 - 0.5, Math.sin(a) * d, { cast: false, ol: false }); m.rotation.y = rnd(0, 3); }
   for (let i = 0; i < 12; i++) { const x = rnd(-70, 70), z = rnd(-70, 60), y = rnd(22, 32); for (let k = 0; k < 4; k++) msph(rnd(2, 3.4), '#ffffff', x + k * 2.4, y + rnd(-0.5, 0.6), z + rnd(-1, 1), { geo: ICO0, mat: CLOUD, cast: false, ol: false }); }
   for (let x = -28; x <= 28; x += 4.6) tree(x + rnd(-0.8, 0.8), 29 + rnd(-0.6, 0.6), rnd(0.9, 1.3));
-  for (let z = -18; z <= 24; z += 5) { tree(-30 + rnd(-1, 1), z, rnd(0.9, 1.2)); tree(25 + rnd(-1, 1), z, rnd(0.9, 1.2)); }
-  for (let x = -16; x <= 16; x += 6.5) tree(x + rnd(-1, 1), -17.5, rnd(0.9, 1.2));
+  for (let z = -26; z <= 24; z += 5) { tree(-30 + rnd(-1, 1), z, rnd(0.9, 1.2)); tree(25 + rnd(-1, 1), z, rnd(0.9, 1.2)); }
+  for (let x = -16; x <= 16; x += 6.5) tree(x + rnd(-1, 1), -26, rnd(0.9, 1.2));
   for (const [x, z] of PALMS) palm(x, z);
   // parking
   for (let x = -18; x <= 19; x += 2.8) if (Math.abs(x + 12) > 2.6 && Math.abs(x + 18.6) > 1.6) decal(0.12, 3.6, '#ffffff', x, 20.4);
@@ -649,7 +653,7 @@ function buildBackRooms() {
   mbox(1.3, 2, 0.65, '#ff5a5f', 1.95, 1, -13.52); mbox(0.9, 1.3, 0.04, null, 1.85, 1.15, -13.18, { mat: basic('#ffe9b0'), ol: false });
   mbox(1, 0.45, 3, '#5b6ee1', 1.7, 0.22, -9.9); mbox(0.3, 0.8, 3, '#4a5bc4', 1.35, 0.6, -9.9); for (const z of [-11.3, -8.5]) mbox(1, 0.6, 0.25, '#4a5bc4', 1.7, 0.35, z);
   mbox(1, 1.9, 1.2, '#9b6bff', 9.2, 0.95, -7.1); mbox(0.05, 0.7, 0.9, null, 8.68, 1.4, -7.1, { mat: basic('#33ffcc'), ol: false }); mbox(0.3, 0.1, 0.9, '#2a2135', 8.6, 0.95, -7.1); msph(0.05, '#ff5a5f', 8.55, 1.03, -7.25, { geo: ICO0 }); sign('ARCADE', 1, 0.3, 8.69, 1.95, -7.1, -Math.PI / 2, { bg: '#ffd23f', fg: '#2a2135' });
-  sign('EMPLOYÉ DU MOIS : personne', 2.6, 0.5, 4.5, 2.4, -13.83, 0, { bg: '#ffc83d', fg: '#2a2135' });
+  sign('EMPLOYÉ DU MOIS : personne', 2.6, 0.5, 7.4, 2.4, -13.83, 0, { bg: '#ffc83d', fg: '#2a2135' });
   sign('SALLE DE PAUSE', 3, 0.55, 3, 3.3, -5.82, 0, { bg: '#c58b4f' });
   // bureau
   mbox(4, 0.09, 1, '#5b3d22', 14.6, 0.78, -12.7); for (const [x, z] of [[12.7, -13.1], [16.5, -13.1], [12.7, -12.3], [16.5, -12.3]]) mbox(0.08, 0.76, 0.08, '#3b2816', x, 0.38, z);
@@ -658,8 +662,8 @@ function buildBackRooms() {
   for (let z = -13.4; z < -9.4; z += 1.1) mbox(0.85, 1.35, 1.0, '#a9b2bc', 19.35, 0.67, z); // (la boucle d'origine ne s'exécutait jamais : les classeurs n'avaient pas de caisson)
   mbox(1, 1.1, 1, '#e9edf1', 10.9, 0.55, -8.7); mbox(0.7, 0.12, 0.6, '#3d4454', 10.9, 1.16, -8.7); mbox(0.5, 0.02, 0.4, '#ffffff', 11.2, 1.05, -8.7);
   mcyl(0.25, 0.5, '#c0663a', 10.7, 0.25, -6.6, { geo: CYL6 }); msph(0.5, '#4fae3f', 10.7, 0.95, -6.6, { geo: ICO0 });
-  mbox(3, 1.6, 0.06, '#ffffff', 16.5, 2.0, -13.84); sign('PLANNING  ✔ ✘ ✔ ✔ ✘', 2.6, 0.4, 16.5, 2.5, -13.8, 0, { bg: null, fg: '#2d7dd2' });
-  sign('OBJECTIF : 100 %', 2.4, 0.5, 13.5, 2.5, -13.83, 0, { bg: '#ffffff', fg: '#2a2135' });
+  mbox(3, 1.6, 0.06, '#ffffff', 13.6, 2.0, -13.84); sign('PLANNING  ✔ ✘ ✔ ✔ ✘', 2.6, 0.4, 13.6, 2.5, -13.8, 0, { bg: null, fg: '#2d7dd2' });
+  sign('OBJECTIF : 100 %', 2.4, 0.5, 13.6, 3.25, -13.83, 0, { bg: '#ffffff', fg: '#2a2135' });
   sign('DIRECTION', 2.6, 0.55, 18.8, 3.3, -5.82, 0, { bg: '#ffc83d', fg: '#2a2135' });
 }
 function buildBunting() {
@@ -682,9 +686,10 @@ function mergeStatic() {
   for (const o of [...scene.children]) {
     if (!o.isMesh || o.isInstancedMesh || o.children.length || o.userData.dyn) continue; const m = o.material;
     if (!m || m.transparent || m.map || m.side === THREE.BackSide || !(m.isMeshStandardMaterial || m.isMeshBasicMaterial)) continue;
-    const key = m.uuid + '|' + o.castShadow + '|' + o.receiveShadow + '|' + !!o.userData.noOL; if (!groups.has(key)) groups.set(key, []); groups.get(key).push(o);
+    const w = inWing(o) ? 1 : 0; // le mobilier de l'aile de service est fusionné à part, pour pouvoir le masquer quand on n'y est pas
+    const key = m.uuid + '|' + o.castShadow + '|' + o.receiveShadow + '|' + !!o.userData.noOL + '|' + w; if (!groups.has(key)) { groups.set(key, []); groups.get(key).w = w; } groups.get(key).push(o);
   }
-  const v = new THREE.Vector3(), nm = new THREE.Matrix3(); let merged = 0; const olGeos = [];
+  const v = new THREE.Vector3(), nm = new THREE.Matrix3(); let merged = 0; const olGeos = [], olGeosW = [];
   for (const list of groups.values()) {
     let vc = 0, ic = 0; for (const m of list) { const g = m.geometry; vc += g.attributes.position.count; ic += g.index ? g.index.count : g.attributes.position.count; }
     const pos = new Float32Array(vc * 3), nor = new Float32Array(vc * 3), idx = new Uint32Array(ic); let vo = 0, io = 0;
@@ -693,18 +698,20 @@ function mergeStatic() {
       for (let i = 0; i < P.count; i++) { v.fromBufferAttribute(P, i).applyMatrix4(m.matrixWorld); pos[(vo + i) * 3] = v.x; pos[(vo + i) * 3 + 1] = v.y; pos[(vo + i) * 3 + 2] = v.z; if (N) { v.fromBufferAttribute(N, i).applyMatrix3(nm).normalize(); nor[(vo + i) * 3] = v.x; nor[(vo + i) * 3 + 1] = v.y; nor[(vo + i) * 3 + 2] = v.z; } }
       if (g.index) for (let i = 0; i < g.index.count; i++) idx[io + i] = g.index.getX(i) + vo; else for (let i = 0; i < P.count; i++) idx[io + i] = vo + i;
       vo += P.count; io += g.index ? g.index.count : P.count; scene.remove(m); merged++;
-      if (!m.userData.noOL && m.material.isMeshStandardMaterial) { const wg = g.clone(); wg.applyMatrix4(m.matrixWorld); wg.computeBoundingBox(); const sz = wg.boundingBox.getSize(v); const mn = Math.min(sz.x, sz.y, sz.z); olGeos.push(outlineGeo(wg, clamp(mn * 0.12, 0.008, 0.03))); wg.dispose(); }
+      if (!m.userData.noOL && m.material.isMeshStandardMaterial) { const wg = g.clone(); wg.applyMatrix4(m.matrixWorld); wg.computeBoundingBox(); const sz = wg.boundingBox.getSize(v); const mn = Math.min(sz.x, sz.y, sz.z); (list.w ? olGeosW : olGeos).push(outlineGeo(wg, clamp(mn * 0.12, 0.008, 0.03))); wg.dispose(); }
     }
     const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('normal', new THREE.BufferAttribute(nor, 3)); geo.setIndex(new THREE.BufferAttribute(idx, 1)); geo.computeBoundingSphere();
-    const mesh = new THREE.Mesh(geo, list[0].material); mesh.castShadow = list[0].castShadow; mesh.receiveShadow = list[0].receiveShadow; scene.add(mesh);
+    const mesh = new THREE.Mesh(geo, list[0].material); mesh.castShadow = list[0].castShadow; mesh.receiveShadow = list[0].receiveShadow; scene.add(mesh); if (list.w) WING.cull.push(mesh);
   }
-  return merged + olMerge(olGeos);
+  olMerge(olGeos); const olw = olMerge(olGeosW); if (olw) WING.cull.push(olw);
+  for (const o of scene.children) if (!o.userData.dyn && !o.userData.wing && !WING.cull.includes(o) && inWing(o)) WING.cull.push(o); // panneaux, groupes, objets texturés
+  return merged;
 }
 function olMerge(list) {
   let n = 0; for (const g of list) n += g.attributes.position.count; if (!n) return 0;
   const pos = new Float32Array(n * 3); let o = 0; for (const g of list) { pos.set(g.attributes.position.array, o); o += g.attributes.position.count * 3; g.dispose(); }
   const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.computeBoundingSphere();
-  scene.add(new THREE.Mesh(geo, OUTLINE_MAT)); return 0;
+  const m = new THREE.Mesh(geo, OUTLINE_MAT); scene.add(m); return m;
 }
 
 // ---------- état dynamique ----------
@@ -851,7 +858,7 @@ function syncWorld(Gs) {
   for (const o of WORLD.messes.values()) if (o && o.userData.a < 1) { const a = (o.userData.a = Math.min(1, o.userData.a + dt / 0.5)), e = easeOutBack(a); if (o.userData.flat) o.scale.set(e, Math.min(1, a * 3), e); else o.scale.setScalar(e); }
   for (let i = WORLD.dying.length - 1; i >= 0; i--) { const d = WORLD.dying[i]; d.t += dt / 0.28; if (d.t >= 1) { scene.remove(d.o); WORLD.dying.splice(i, 1); } else d.o.scale.setScalar(1 - d.t); }
   if (Gs) fxWorld(Gs, dt);
-  decorTick(dt, Gs);
+  decorTick(dt, Gs); wingTick(dt);
   // four, micro-ondes, téléphone
   const t = WORLD.clock;
   const ov = Gs?.ov?.[0] ?? 0; const wc = WORLD.ovenWin.material.color;

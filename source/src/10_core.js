@@ -80,20 +80,32 @@ const ZONES = [
   { id: 'bureau', name: 'Bureau du directeur', x0: 10, x1: 20, z0: -14, z1: -6, color: '#9fb5d9' },
   { id: 'parking', name: 'Parking', x0: -20.6, x1: 20.6, z0: 14, z1: 22.6, color: '#5d6168', outdoor: true },
   { id: 'quai', name: 'Quai de livraison', x0: -26.6, x1: -20, z0: -14, z1: -6.4, color: '#8f9298', outdoor: true },
+  // aile de service (au nord) : un couloir qui dessert de petites pièces, et une cour derrière le quai
+  { id: 'couloir', name: 'Couloir de service', x0: -20, x1: 20, z0: -16.6, z1: -14, color: '#d8d2c4' },
+  { id: 'vestiaires', name: 'Vestiaires', x0: -20, x1: -12, z0: -22, z1: -16.6, color: '#bfe0e8' },
+  { id: 'wc', name: 'Toilettes', x0: -12, x1: -5.5, z0: -22, z1: -16.6, color: '#d6eef0' },
+  { id: 'technique', name: 'Local technique', x0: -5.5, x1: 1.5, z0: -22, z1: -16.6, color: '#a9a39a' },
+  { id: 'archives', name: 'Archives', x0: 1.5, x1: 8.5, z0: -22, z1: -16.6, color: '#d9c9a8' },
+  { id: 'entrepot', name: 'Entrepôt', x0: 8.5, x1: 20, z0: -22, z1: -16.6, color: '#c4beb2' },
+  { id: 'cour', name: 'Cour de service', x0: -26.6, x1: -20, z0: -22, z1: -14, color: '#8f9298', outdoor: true },
 ];
 function zoneAt(x, z) { for (const zn of ZONES) if (x >= zn.x0 && x <= zn.x1 && z >= zn.z0 && z <= zn.z1) return zn; return null; }
-const insideStore = (x, z) => x > -20 && x < 20 && z > -14 && z < 14;
+const insideStore = (x, z) => x > -20 && x < 20 && z > -22 && z < 14;
 const PALMS = [[-17.5, 15.4], [-8, 15.4], [4, 15.4], [19.2, 15.6]];
 
 (function buildMap() {
-  hWall(-14, -20.15, 20.15);
+  hWall(-14, -20.15, 20.15, [[2.7, 4.3], [16.9, 18.5]]); // ancien mur du fond : on passe maintenant de la salle de pause et du bureau au couloir de service
   vWall(-20, -14, 14, [[-12, -9]]);
   vWall(20, -14, 14);
+  // aile de service
+  hWall(-22, -20.15, 20.15); vWall(-20, -22, -14, [[-16.45, -14.15]]); vWall(20, -22, -14);
+  hWall(-16.6, -20, 20, [[-15.95, -14.55], [-9.95, -8.55], [-0.95, 0.45], [3.55, 4.95], [11.6, 13.4], [18.2, 19.6]]); // portes de 1,4 m centrées sur la grille de navigation des bots
+  for (const x of [-12, -5.5, 1.5, 8.5]) vWall(x, -22, -16.6);
   hWall(14, -20.15, 20.15, [[10, 16]]);
   hWall(-6, -20, 20, [[-14, -10], [-3.5, -1.5], [2, 4], [18, 19.6]]);
   vWall(-6, -14, -6); vWall(1, -14, -6); vWall(10, -14, -6);
   hWall(22.6, -20.6, 20.6, [], 'inv'); vWall(-20.6, 14, 22.6, [], 'inv'); vWall(20.6, 14, 22.6, [], 'inv');
-  hWall(-14, -26.6, -20.15, [], 'inv'); hWall(-6.4, -26.6, -20, [], 'inv'); vWall(-26.6, -14, -6.4, [], 'inv');
+  hWall(-22, -26.6, -20.15, [], 'inv'); hWall(-6.4, -26.6, -20, [], 'inv'); vWall(-26.6, -22, -6.4, [], 'inv');
   // surface de vente
   GOND_X.forEach((x, i) => addBox(x - 0.6, x + 0.6, -3, 5, 2.1, 'fix', 'gondola', { i }));
   addBox(18.3, 20, -4, 6, 2.4, 'fix', 'fridge');
@@ -117,6 +129,7 @@ const PALMS = [[-17.5, 15.4], [-8, 15.4], [4, 15.4], [19.2, 15.6]];
   addBox(-19.6, -7, -13.85, -12.9, 3.0, 'fix', 'rack');
   addBox(-10.5, -7.5, -10.5, -8.6, 1.2, 'fix', 'pallet');
   addBox(-7.9, -6.6, -12.4, -11.3, 1.5, 'fix', 'roll');
+  addBox(-16.5, -12.5, -10.6, -9.8, 3.0, 'fix', 'rack2'); // rangée de racks au milieu de la réserve : on peut s'y cacher derrière
   // chambre froide
   addBox(-5.7, -3.6, -13.85, -11.5, 1.6, 'fix', 'crates');
   addBox(-1.3, 0.7, -13.85, -12.4, 0.5, 'fix', 'napcrates');
@@ -137,6 +150,36 @@ const PALMS = [[-17.5, 15.4], [-8, 15.4], [4, 15.4], [19.2, 15.6]];
   addBox(10.4, 11.3, -13.8, -12.9, 1.0, 'fix', 'safe');
   addBox(-19.85, -19.05, -1.2, 3.2, 2.2, 'fix', 'drinkfridge');
   addBox(-6.85, -6.15, -8.4, -7.0, 2.1, 'fix', 'closet');
+  // surface de vente : éléments hauts qui coupent les lignes de vue
+  addBox(14.6, 15.6, -3.4, 1.6, 2.1, 'fix', 'bazar'); // gondole bazar : l'allée du rayon frais devient un vrai couloir
+  addBox(9.6, 11.0, 1.9, 3.5, 2.2, 'fix', 'promostack'); // îlot de palettes promo entre la pyramide et la dégustation
+  // couloir de service
+  addBox(-3.6, -2.8, -16.42, -15.85, 1.0, 'fix', 'cleancart');
+  addBox(5.6, 6.8, -16.42, -15.6, 1.4, 'fix', 'pallet3');
+  // vestiaires
+  addBox(-19.7, -13.6, -21.85, -21.3, 2.0, 'fix', 'lockers2');
+  addBox(-18.2, -15.4, -19.5, -18.7, 2.0, 'fix', 'lockers3');
+  addBox(-17.8, -15.8, -18.25, -17.85, 0.45, 'fix', 'bench');
+  addBox(-13.5, -13.44, -21.85, -20.1, 2.1, 'fix', 'showerwall');
+  // toilettes : trois cabines (cloisons), lavabos contre le mur est
+  for (const x of [-10.25, -8.65, -7.05]) addBox(x - 0.03, x + 0.03, -21.85, -20.0, 2.0, 'fix', 'stall');
+  addBox(-6.25, -5.65, -20.8, -18.0, 0.9, 'fix', 'sinks');
+  // local technique
+  addBox(-5.2, -3.9, -21.85, -20.5, 2.6, 'fix', 'boiler');
+  addBox(-3.5, -2.6, -21.85, -21.0, 2.2, 'fix', 'heater');
+  addBox(-1.8, 0.4, -21.85, -21.4, 2.2, 'fix', 'elec');
+  addBox(-3.2, -2.4, -19.6, -17.6, 2.0, 'fix', 'metalshelf');
+  addBox(0.3, 1.2, -19.2, -18.2, 1.0, 'fix', 'pump');
+  // archives
+  addBox(1.65, 6.4, -21.85, -21.35, 2.3, 'fix', 'archshelf');
+  addBox(3.2, 8.35, -19.9, -19.4, 2.3, 'fix', 'archshelf');
+  addBox(6.7, 8.2, -18.1, -17.3, 0.8, 'fix', 'archdesk');
+  // entrepôt : allées de racks
+  for (const x of [10.6, 13.6, 16.6]) addBox(x, x + 0.8, -21.85, -18.6, 3.2, 'fix', 'rack3');
+  addBox(8.9, 9.9, -18.3, -17.0, 1.6, 'fix', 'forklift');
+  // cour de service
+  addBox(-26.3, -24.3, -16.2, -14.5, 1.8, 'fix', 'compactor');
+  addBox(-22.2, -20.4, -21.8, -20.4, 1.5, 'fix', 'pallets');
   // quai & parking
   addBox(-26.4, -24, -13.6, -7.6, 3.2, 'fix', 'truck');
   addBox(-14, -10, 19.5, 21, 1.0, 'fix', 'abri');
@@ -180,6 +223,9 @@ S('micro', 5.4, 9.6, 'Faire une fausse annonce au micro', 's', 2, { dmg: 2, mg: 
 S('arcade', 8.0, -7.1, "Jouer à la borne d'arcade", 's', 6, { dmg: 3.5, short: 'Salle de pause' });
 S('microondes', 5.8, -12.45, 'Faire exploser un plat au micro-ondes', 's', 2, { dmg: 2.5, short: 'Salle de pause' });
 S('congel', 6.25, -1.8, 'Débrancher le congélateur', 's', 2.5, { dmg: 3, short: 'Surgelés' });
+S('wc', -9.45, -21.2, 'Glander sur son téléphone aux toilettes', 's', 6, { dmg: 3.5, short: 'Toilettes', seat: 0 });
+S('fort', 15.5, -21.0, 'Construire un fort en cartons', 's', 5, { dmg: 3, short: 'Entrepôt' });
+S('cour', -23.5, -20.9, 'Prendre le soleil sur le banc', 's', 6, { dmg: 3, short: 'Cour de service', seat: 0 });
 S('four', 15.5, -4.05, 'Four à pain', 'e', 2, { short: 'Boulangerie' });
 S('tel', 2.9, 9.6, 'Répondre au téléphone', 'e', 2, { gain: 2, short: 'Accueil' });
 S('cafe', 9.15, -12.35, 'Pause café', 'p', 4, { mg: 'timing', short: 'Salle de pause' });
@@ -198,7 +244,7 @@ const JOBS = [
   { id: 'promo', st: ['promo0', 'promo1', 'promo2', 'promo3'], rate: 1 / 135, txt: 'Affiches promo à renouveler (imprimante du bureau)', icon: '🖨️' },
 ];
 JOBS.forEach((j, k) => j.st.forEach((id) => (ST[id].job = k)));
-const SAB_IDS = ['pyramide', 'lait', 'sieste', 'echant', 'micro', 'arcade', 'microondes', 'congel', 'four'];
+const SAB_IDS = ['pyramide', 'lait', 'sieste', 'echant', 'micro', 'arcade', 'microondes', 'congel', 'four', 'wc', 'fort', 'cour'];
 function sabValid(id, G) {
   const ms = G?.ms || []; const has = (t) => ms.some((m) => m[1] === t);
   if (id === 'pyramide') return !G?.py; if (id === 'lait') return ms.filter((m) => m[1] === 'lait').length < TUNE.maxPuddles;
@@ -214,12 +260,12 @@ const MESS = {
   melt: { clean: 'Rebrancher le congélateur', hold: 2, name: 'Congélateur débranché', icon: '🧊' },
   burn: { clean: 'Jeter le pain brûlé', hold: 3, name: 'Pain brûlé (four)', icon: '🔥' },
 };
-const PUDDLES = [[-11.5, -1], [-6.5, 3], [-1.5, -2], [3.0, 4.4], [15, -2.2], [16, 2.4], [7.6, 6.6], [-16.6, 6]];
+const PUDDLES = [[-11.5, -1], [-6.5, 3], [-1.5, -2], [3.0, 4.4], [16.9, -1.0], [16, 2.4], [7.6, 6.6], [-16.6, 6]];
 const SEATS = [[4.8, -11.8], [6, -11.8], [7.2, -11.8], [4.8, -8.6], [6, -8.6], [7.2, -8.6], [3.8, -10.6], [3.8, -9.8], [8.2, -10.6], [8.2, -9.8], [3.8, -11.6], [8.2, -11.6]];
 const TABLE_C = [6, -10.2];
 const SPAWNS = []; for (let i = 0; i < 12; i++) SPAWNS.push([-16 + (i % 6) * 2.6, 6.6 + Math.floor(i / 6) * 1.3]);
-const PATROL = [[-11.5, 0], [-6.5, 1], [-1.5, 0], [3, 0], [7, -1], [10, 1], [15, 1.5], [-8, 7.4], [4, 7.4], [-13, -9.5], [-2.5, -9], [6, -7.6], [14, -9.5], [0, 17], [-22.5, -10.5], [12, -3]];
-const BROWSE = [[-16.6, -1], [-16.6, 3], [-11.5, -1.5], [-11.5, 3], [-6.5, -1.5], [-6.5, 3], [-1.5, -1.5], [-1.5, 3], [3, -2], [3, 2.5], [6.6, 4.4], [10.5, 1.5], [16, -1], [16.2, 3], [14.5, 7.4], [9, -3.4], [13.2, -3.3], [17.2, 0.5], [8.6, 7.8]];
+const PATROL = [[-11.5, 0], [-6.5, 1], [-1.5, 0], [3, 0], [7, -1], [10, 1], [15.1, 2.6], [-8, 7.4], [4, 7.4], [-13, -8.7], [-2.5, -9], [6, -7.6], [14, -9.5], [0, 17], [-22.5, -10.5], [12, -3], [-8, -15.3], [12, -15.3], [-16.8, -20.2], [15.5, -19.5], [-23, -18]];
+const BROWSE = [[-16.6, -1], [-16.6, 3], [-11.5, -1.5], [-11.5, 3], [-6.5, -1.5], [-6.5, 3], [-1.5, -1.5], [-1.5, 3], [3, -2], [3, 2.5], [6.6, 4.4], [10.6, 0.9], [16.95, -1.6], [16.2, 3], [14.5, 7.4], [9, -3.4], [13.2, -3.3], [17.2, 0.5], [8.6, 7.8], [14.0, -1.9], [12.0, 2.6]];
 const CUST_DOOR = [13, 16.5];
 const queueSpot = (k, pos) => [CHECKOUTS[k] - 1.0, 9.6 - pos * 0.85];
 const CAMS = [
@@ -231,6 +277,9 @@ const CAMS = [
   { name: 'CAM 6 — Salle de pause', p: [1.4, 3.6, -6.5], t: [7, 0, -11] },
   { name: 'CAM 7 — Parking', p: [19.5, 5, 22.3], t: [-4, 0, 16] },
   { name: 'CAM 8 — Quai', p: [-20.6, 4.5, -6.8], t: [-23, 0, -11] },
+  { name: 'CAM 9 — Couloir de service', p: [19.6, 3.5, -14.45], t: [-6, 0, -15.6] },
+  { name: 'CAM 10 — Entrepôt', p: [19.6, 3.7, -16.95], t: [11, 0, -20.5] },
+  { name: 'CAM 11 — Cour de service', p: [-20.5, 4.2, -21.5], t: [-24, 0, -15.5] },
 ];
 
 // ---------- Étagères à emplacements (façon Supermarket Simulator) ----------
@@ -283,6 +332,8 @@ CHECKOUTS.forEach((c, i) => OP({ type: 'drawer', name: 'le tiroir-caisse ' + (i 
 for (let i = 0; i < 2; i++) OP({ type: 'drawer', name: "le tiroir de l'accueil", base: [3.6 + i * 1.3, 0.8, 10.4], n: [0, -1], d: 0.35, w: 0.6, hgt: 0.2, dp: 0.5, col: '#178f81', acc: i });
 OP({ type: 'cab', name: "l'armoire à balais", aim: [-6.9, 1.2, -7.7], leaves: [{ h: [-6.87, -8.4], ry0: -HP, ry1: -Math.PI - 0.3, w: 0.7, hgt: 2.0, y0: 0.05, th: 0.04, col: '#7a8796' }, { h: [-6.87, -7.0], ry0: HP, ry1: Math.PI + 0.3, w: 0.7, hgt: 2.0, y0: 0.05, th: 0.04, col: '#7a8796' }], closet: 1 });
 for (let k = 0; k < 3; k++) { const z0 = -1.1 + k * 1.45; OP({ type: 'cab', name: 'la vitrine à boissons', aim: [-19.0, 1.15, z0 + 0.72], leaves: [{ h: [-19.03, z0], ry0: -HP, ry1: 0.2, w: 1.42, hgt: 1.92, y0: 0.14, th: 0.05, col: '#d7e3ee', glass: 1 }], fridge: k }); }
+for (const [nm, x0, col, win] of [['la porte des vestiaires', -15.95, '#7fb0c9', 1], ['la porte des toilettes', -9.95, '#cfe3ea', 0], ['la porte du local technique', -0.95, '#8a929c', 0], ['la porte des archives', 3.55, '#c58b4f', 1]])
+  OP({ type: 'door', name: nm, aim: [x0 + 0.7, 1.3, -16.6], box: [x0, x0 + 1.4, -16.67, -16.53], leaves: [{ h: [x0, -16.6], ry0: 0, ry1: HP, w: 1.4, hgt: 2.85, th: 0.07, col, win }] });
 const OPEN_COLD = OPEN.findIndex((o) => o.cold);
 const OPEN_WORDS = Math.ceil(OPEN.length / 30);
 const opGet = (op, i) => !!(((op?.[(i / 30) | 0] || 0) >>> i % 30) & 1);
@@ -316,7 +367,7 @@ function itemStep(it, dt) {
     if (ny - hh <= 0) { ny = hh; it.vy = it.vy < -2.5 ? -it.vy * 0.28 : 0; ground = true; }
     if (ground && it.s === 2) { it.s = it.tumble ? 1 : 0; const nh = itemHH(it, it.s === 1); ny += nh - hh; it.hh = nh; }
     if (ground) { const f = Math.max(0, 1 - 8 * h); it.vx *= f; it.vz *= f; it.vr *= f; }
-    it.x = clamp(nx, -26.5, 20.5); it.y = ny; it.z = clamp(nz, -13.9, 22.5); it.ry += it.vr * h;
+    it.x = clamp(nx, -26.5, 20.5); it.y = ny; it.z = clamp(nz, -21.9, 22.5); it.ry += it.vr * h;
     if (ground && Math.hypot(it.vx, it.vz) < 0.15 && Math.abs(it.vy) < 0.01) { it.rt = (it.rt || 0) + h; if (it.rt > 0.2) { it.rest = true; it.vx = it.vy = it.vz = it.vr = 0; return; } } else it.rt = 0;
   }
 }
@@ -337,7 +388,7 @@ function collide(x, z, r = 0.35) {
 }
 
 // ---------- Navigation (A* sur grille) ----------
-const NAV = { x0: -27, z0: -14.5, cs: 0.5, w: 0, h: 0, g: null };
+const NAV = { x0: -27, z0: -22.5, cs: 0.5, w: 0, h: 0, g: null };
 function buildNav() {
   NAV.w = Math.ceil((21 - NAV.x0) / NAV.cs); NAV.h = Math.ceil((23 - NAV.z0) / NAV.cs);
   NAV.g = new Uint8Array(NAV.w * NAV.h); const r = 0.42;
@@ -399,7 +450,7 @@ function genSab(W, ex) {
   if (W.messes.filter((m) => m[1] === 'lait').length < TUNE.maxPuddles && !ex.has('lait')) o.push({ w: 1, f: () => mkTask('s', [{ st: 'lait' }], ST.lait.label, '🥛') });
   { const i = rndi(0, 7); if (!ex.has('rayon' + i)) o.push({ w: 1.0, f: () => mkTask('s', [{ st: 'rayon' + i, sab: 'jet' }], 'Jeter des produits par terre : ' + SHELF_NAMES[i], '💥') }); }
   if (W.op && !opGet(W.op, OPEN_COLD)) o.push({ w: 0.6, f: () => mkTask('s', [{ x: -2.5, z: -5.25, hold: 1.2, door: OPEN_COLD }], 'Laisser la chambre froide ouverte', '🚪') });
-  for (const [id, ic] of [['sieste', '💤'], ['echant', '🧀'], ['micro', '📢'], ['arcade', '🕹️']]) if (!ex.has(id)) o.push({ w: 0.9, f: () => mkTask('s', [{ st: id }], ST[id].label, ic) });
+  for (const [id, ic] of [['sieste', '💤'], ['echant', '🧀'], ['micro', '📢'], ['arcade', '🕹️'], ['wc', '📱'], ['fort', '📦'], ['cour', '☀️']]) if (!ex.has(id)) o.push({ w: 0.9, f: () => mkTask('s', [{ st: id }], ST[id].label, ic) });
   if (!ex.has('microondes') && !hasMess(W, 'smoke')) o.push({ w: 0.9, f: () => mkTask('s', [{ st: 'microondes' }], ST.microondes.label, '💥') });
   if (!ex.has('congel') && !hasMess(W, 'melt')) o.push({ w: 0.9, f: () => mkTask('s', [{ st: 'congel' }], ST.congel.label, '🔌') });
   if (!ex.has('four') && (W.ov?.[0] ?? 0) !== 3) o.push({ w: 0.8, f: () => mkTask('s', [{ st: 'four', sab: 'four' }], 'Monter le four à fond', '🔥') });
